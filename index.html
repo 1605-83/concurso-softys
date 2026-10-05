@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Concurso Softys · Cobertura septiembre · Distribuidora Elebes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EEF1F4; --panel:#FFFFFF; --ink:#18212C; --muted:#5D6977; --line:#D6DCE3; --track:#E4E8ED;
+  --sussex:#2C5AA0; --higienol:#23845A; --babysec:#C2476E;
+  --ok:#1F7A4D; --warn:#B7791F; --bad:#B23A3A;
+  --brand:var(--sussex);
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --bg:#141A21; --panel:#1C242E; --ink:#E7ECF1; --muted:#97A3B1; --line:#2E3946; --track:#2A3440;
+  --sussex:#6E9BE0; --higienol:#4DBB88; --babysec:#E57FA0; --ok:#4DBB88; --warn:#E0A84A; --bad:#E47878;
+}}
+:root[data-theme="dark"]{
+  --bg:#141A21; --panel:#1C242E; --ink:#E7ECF1; --muted:#97A3B1; --line:#2E3946; --track:#2A3440;
+  --sussex:#6E9BE0; --higienol:#4DBB88; --babysec:#E57FA0; --ok:#4DBB88; --warn:#E0A84A; --bad:#E47878;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Barlow,"Segoe UI",Roboto,Arial,sans-serif;font-size:15px;line-height:1.45}
+.num{font-family:"Barlow Condensed","Arial Narrow",Arial,sans-serif;font-variant-numeric:tabular-nums}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 20px 48px}
+header{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:flex-end;justify-content:space-between;margin-bottom:20px}
+h1{font-family:"Barlow Condensed",Arial,sans-serif;font-weight:700;font-size:2.1rem;line-height:1.05;margin:0}
+.sub{color:var(--muted);margin:4px 0 0}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.tabs{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:4px;gap:2px;flex-wrap:wrap}
+.tabs button{border:0;background:none;color:var(--ink);font:600 .95rem Barlow,Arial,sans-serif;padding:8px 14px;border-radius:7px;cursor:pointer}
+.tabs button[aria-pressed="true"]{background:var(--c,var(--ink));color:#fff}
+:root[data-theme="dark"] .tabs button[aria-pressed="true"]{color:#10161C}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .tabs button[aria-pressed="true"]{color:#10161C}}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.toggle{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:.9rem;cursor:pointer}
+.toggle input{accent-color:var(--brand);width:16px;height:16px}
+
+.hero{background:var(--panel);border:1px solid var(--line);border-left:6px solid var(--brand);border-radius:10px;padding:18px 22px;display:grid;grid-template-columns:minmax(220px,1.3fr) repeat(4,minmax(110px,1fr));gap:18px;align-items:center;margin-bottom:18px}
+.hero h2{margin:0;font:700 1.6rem "Barlow Condensed",Arial,sans-serif;color:var(--brand)}
+.hero .codes{color:var(--muted);font-size:.85rem;margin-top:2px}
+.stat .v{font-size:2rem;font-weight:700;line-height:1}
+.stat .l{color:var(--muted);font-size:.85rem;margin-top:4px}
+.stat .v small{font-size:1rem;color:var(--muted);font-weight:500}
+
+.grid{display:grid;grid-template-columns:1fr;gap:18px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px}
+.panel h3{margin:0 0 4px;font-size:1.05rem}
+.panel .hint{color:var(--muted);font-size:.85rem;margin:0 0 14px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;color:var(--muted);font-size:.82rem;margin-bottom:12px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:14px;height:10px;border-radius:2px;background:var(--brand)}
+.tick{width:2px;height:14px;background:var(--ink)}
+
+.lane{display:grid;grid-template-columns:28px minmax(150px,210px) 1fr 92px;gap:10px;align-items:center;padding:6px 0;border-top:1px solid var(--line)}
+.lane:first-of-type{border-top:0}
+.pos{color:var(--muted);text-align:right}
+.who b{font-weight:600}
+.who small{color:var(--muted);display:block;font-size:.78rem}
+.bar{position:relative;height:20px;background:var(--track);border-radius:4px}
+.fill{position:absolute;left:0;top:0;bottom:0;background:var(--brand);border-radius:4px;transition:width .35s ease}
+.goal{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--ink)}
+.res{text-align:right;font-size:1.15rem;font-weight:600}
+.res small{display:block;font-size:.75rem;color:var(--muted);font-family:Barlow,Arial,sans-serif;font-weight:500}
+.pill{display:inline-block;font-size:.75rem;font-weight:600;padding:2px 8px;border-radius:99px;white-space:nowrap}
+.pill.ok{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}
+.pill.warn{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+.pill.bad{background:color-mix(in srgb,var(--bad) 15%,transparent);color:var(--bad)}
+
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:760px}
+th,td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:.8rem;color:var(--muted);font-weight:600;cursor:pointer;user-select:none;vertical-align:bottom}
+th:hover{color:var(--ink)}
+th.l,td.l{text-align:left}
+td{font-size:1rem}
+tfoot td{font-weight:700;border-bottom:0;border-top:2px solid var(--ink)}
+tbody tr:hover{background:color-mix(in srgb,var(--brand) 6%,transparent)}
+.tools{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+input[type=search]{font:inherit;padding:7px 10px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);min-width:220px}
+.mini{display:flex;align-items:center;gap:6px;justify-content:flex-end}
+.mini .bar{width:70px;height:8px}
+.grpS{color:var(--sussex)}.grpH{color:var(--higienol)}.grpB{color:var(--babysec)}
+th.grp{text-align:center;font-size:.95rem;border-bottom:2px solid currentColor;cursor:default}
+.note{color:var(--muted);font-size:.82rem;margin-top:14px;max-width:80ch}
+[hidden]{display:none!important}
+
+@media (max-width:820px){
+  .hero{grid-template-columns:1fr 1fr}
+  .hero > :first-child{grid-column:1/-1}
+  .lane{grid-template-columns:22px 1fr 74px;}
+  .lane .bar{grid-column:2/4;grid-row:2}
+  .lane .res{grid-row:1;grid-column:3}
+}
+@media (prefers-reduced-motion:reduce){.fill{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Concurso Softys de cobertura</h1>
+      <p class="sub">Distribuidora Elebes · Supervisión Bruno Centurion · Septiembre 2026 (ventas del 1 al 24)</p>
+    </div>
+    <div class="controls">
+      <div class="tabs" role="group" aria-label="Producto">
+        <button data-k="sussex" style="--c:var(--sussex)">Sussex</button>
+        <button data-k="higienol" style="--c:var(--higienol)">Higienol</button>
+        <button data-k="babysec" style="--c:var(--babysec)">Babysec</button>
+        <button data-k="resumen" style="--c:var(--ink)">Resumen</button>
+      </div>
+      <label class="toggle"><input type="checkbox" id="neta"> Descontar rechazos</label>
+    </div>
+  </header>
+
+  <section id="vistaProducto">
+    <div class="hero" id="hero"></div>
+    <div class="grid">
+      <div class="panel">
+        <h3>Avance de cada vendedor hacia su objetivo</h3>
+        <p class="hint">Ordenado por cumplimiento. La barra es la cobertura sobre su base; la línea vertical marca el objetivo.</p>
+        <div class="legend"><span><i class="sw"></i>Cobertura actual</span><span><i class="tick"></i>Objetivo</span></div>
+        <div id="lanes"></div>
+      </div>
+      <div class="panel">
+        <div class="tools">
+          <div><h3>Detalle por vendedor</h3><p class="hint" style="margin:0">Tocá un encabezado para ordenar.</p></div>
+          <input type="search" id="q" placeholder="Buscar vendedor o código" aria-label="Buscar vendedor">
+        </div>
+        <div class="tablewrap"><table id="tabla"></table></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="vistaResumen" hidden>
+    <div class="panel">
+      <div class="tools">
+        <div><h3>Los tres productos lado a lado</h3><p class="hint" style="margin:0">Clientes con compra / objetivo y porcentaje de cobertura sobre la base.</p></div>
+        <input type="search" id="q2" placeholder="Buscar vendedor o código" aria-label="Buscar vendedor">
+      </div>
+      <div class="tablewrap"><table id="resumen"></table></div>
+    </div>
+  </section>
+
+  <p class="note">Base de clientes y porcentaje objetivo tomados de la hoja «CONCURSO COB» (Sussex 20 %, Higienol 45 %, Babysec 20 %). El objetivo en clientes se redondea hacia arriba. Un cliente cuenta con compra si tiene al menos una factura de venta de alguno de los códigos del producto; con «Descontar rechazos» solo cuenta si su cantidad neta, restando devoluciones por rechazo, sigue siendo de 1 o más. Clientes sin compra = base − clientes con compra.</p>
+</div>
+
+<script>
+const DATA = [{"cod": 2, "nombre": "Fernanda Cejas", "base": 131, "sussex": 2, "sussex_neta": 2, "higienol": 3, "higienol_neta": 3, "babysec": 3, "babysec_neta": 3}, {"cod": 3, "nombre": "Vacante", "base": 124, "sussex": 2, "sussex_neta": 2, "higienol": 1, "higienol_neta": 1, "babysec": 2, "babysec_neta": 2}, {"cod": 4, "nombre": "Selene Pawlikowski", "base": 143, "sussex": 4, "sussex_neta": 4, "higienol": 17, "higienol_neta": 14, "babysec": 4, "babysec_neta": 4}, {"cod": 5, "nombre": "Eliana Huber", "base": 135, "sussex": 11, "sussex_neta": 10, "higienol": 9, "higienol_neta": 9, "babysec": 8, "babysec_neta": 8}, {"cod": 6, "nombre": "Nieves Alegre", "base": 118, "sussex": 8, "sussex_neta": 8, "higienol": 16, "higienol_neta": 14, "babysec": 5, "babysec_neta": 5}, {"cod": 7, "nombre": "Myrian Lertora", "base": 159, "sussex": 1, "sussex_neta": 1, "higienol": 1, "higienol_neta": 1, "babysec": 3, "babysec_neta": 1}, {"cod": 24, "nombre": "Cecilia Gauchez", "base": 147, "sussex": 1, "sussex_neta": 1, "higienol": 0, "higienol_neta": 0, "babysec": 2, "babysec_neta": 2}, {"cod": 26, "nombre": "Sabrina Pereyra", "base": 119, "sussex": 10, "sussex_neta": 9, "higienol": 15, "higienol_neta": 15, "babysec": 5, "babysec_neta": 5}, {"cod": 27, "nombre": "Samanta Dogliotti", "base": 143, "sussex": 3, "sussex_neta": 3, "higienol": 5, "higienol_neta": 5, "babysec": 4, "babysec_neta": 4}, {"cod": 28, "nombre": "Nadia Diaz", "base": 150, "sussex": 8, "sussex_neta": 6, "higienol": 6, "higienol_neta": 6, "babysec": 4, "babysec_neta": 4}, {"cod": 29, "nombre": "Camila Navarrete", "base": 134, "sussex": 7, "sussex_neta": 7, "higienol": 7, "higienol_neta": 7, "babysec": 4, "babysec_neta": 4}, {"cod": 30, "nombre": "Oriana Songini", "base": 159, "sussex": 4, "sussex_neta": 3, "higienol": 4, "higienol_neta": 4, "babysec": 2, "babysec_neta": 2}, {"cod": 51, "nombre": "Ezequiel Valente", "base": 136, "sussex": 11, "sussex_neta": 11, "higienol": 4, "higienol_neta": 4, "babysec": 5, "babysec_neta": 5}, {"cod": 52, "nombre": "Nicole Sosa", "base": 151, "sussex": 11, "sussex_neta": 11, "higienol": 7, "higienol_neta": 7, "babysec": 6, "babysec_neta": 6}, {"cod": 53, "nombre": "Verona Abati", "base": 116, "sussex": 7, "sussex_neta": 7, "higienol": 3, "higienol_neta": 3, "babysec": 2, "babysec_neta": 2}, {"cod": 54, "nombre": "Leonel Caruso", "base": 144, "sussex": 11, "sussex_neta": 11, "higienol": 9, "higienol_neta": 9, "babysec": 3, "babysec_neta": 3}, {"cod": 56, "nombre": "Ezequiel Ferreira", "base": 179, "sussex": 15, "sussex_neta": 14, "higienol": 3, "higienol_neta": 3, "babysec": 8, "babysec_neta": 7}, {"cod": 61, "nombre": "Nailah Guzman", "base": 126, "sussex": 3, "sussex_neta": 3, "higienol": 6, "higienol_neta": 6, "babysec": 10, "babysec_neta": 9}, {"cod": 62, "nombre": "Nahuel Martinez", "base": 124, "sussex": 20, "sussex_neta": 20, "higienol": 27, "higienol_neta": 27, "babysec": 16, "babysec_neta": 15}, {"cod": 63, "nombre": "Daniel Martin", "base": 134, "sussex": 20, "sussex_neta": 19, "higienol": 23, "higienol_neta": 21, "babysec": 13, "babysec_neta": 13}];
+const PROD = {
+  sussex:{nombre:"Sussex",pct:.20,codes:"1505688 · 1505712"},
+  higienol:{nombre:"Higienol",pct:.45,codes:"1501627"},
+  babysec:{nombre:"Babysec",pct:.20,codes:"1504079 · 1504085 · 1504086 · 1504087 · 1504088 · 1504206 · 1504207 · 1504208 · 1504290 · 1504293 · 1504299 · 1504738 · 1504740"}
+};
+let state = {k:"sussex", neta:false, sort:{col:"cumpl",dir:-1}, q:""};
+try{ const s = JSON.parse(localStorage.getItem("elebes-cob")||"{}"); if(s.k) state.k=s.k; if(s.neta!=null) state.neta=s.neta; }catch(e){}
+const fmt = n => n.toLocaleString("es-AR");
+const pct = (n,d=1) => (n*100).toLocaleString("es-AR",{minimumFractionDigits:d,maximumFractionDigits:d})+"\u00a0%";
+const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function rows(k){
+  const p = PROD[k];
+  return DATA.map(v=>{
+    const con = state.neta ? v[k+"_neta"] : v[k];
+    const obj = Math.ceil(v.base*p.pct - 1e-9);
+    return {cod:v.cod, nombre:v.nombre, base:v.base, obj, con, sin:v.base-con,
+            cob:con/v.base, cumpl:con/obj, falta:Math.max(obj-con,0)};
+  });
+}
+function pill(c){ const cls = c>=1?"ok":c>=.5?"warn":"bad"; return `<span class="pill ${cls}">${pct(c,0)} del obj.</span>`; }
+function save(){ try{ localStorage.setItem("elebes-cob",JSON.stringify({k:state.k,neta:state.neta})); }catch(e){} }
+
+function render(){
+  document.querySelectorAll(".tabs button").forEach(b=>b.setAttribute("aria-pressed", b.dataset.k===state.k));
+  document.getElementById("neta").checked = state.neta;
+  const isRes = state.k==="resumen";
+  document.getElementById("vistaProducto").hidden = isRes;
+  document.getElementById("vistaResumen").hidden = !isRes;
+  document.documentElement.style.setProperty("--brand", isRes ? "var(--ink)" : `var(--${state.k})`);
+  isRes ? renderResumen() : renderProducto();
+  save();
+}
+
+function renderProducto(){
+  const k = state.k, p = PROD[k], r = rows(k);
+  const T = r.reduce((a,x)=>({base:a.base+x.base,obj:a.obj+x.obj,con:a.con+x.con,sin:a.sin+x.sin}),{base:0,obj:0,con:0,sin:0});
+  const llegan = r.filter(x=>x.con>=x.obj).length;
+  document.getElementById("hero").innerHTML = `
+    <div><h2>${p.nombre} · objetivo ${pct(p.pct,0).replace(" ","\u00a0")}</h2><div class="codes">Códigos ${p.codes}</div></div>
+    <div class="stat"><div class="v num">${fmt(T.base)}</div><div class="l">Base total de clientes (${r.length} vendedores)</div></div>
+    <div class="stat"><div class="v num">${fmt(T.con)} <small>/ ${fmt(T.obj)}</small></div><div class="l">Clientes con compra / objetivo</div></div>
+    <div class="stat"><div class="v num">${fmt(T.sin)}</div><div class="l">Clientes sin compra</div></div>
+    <div class="stat"><div class="v num">${pct(T.con/T.base)}</div><div class="l">Cobertura total · ${llegan} de ${r.length} en objetivo</div></div>`;
+
+  const lanes = [...r].sort((a,b)=>b.cumpl-a.cumpl || b.con-a.con);
+  const scale = Math.max(p.pct*1.6, ...r.map(x=>x.cob))*1.05;
+  document.getElementById("lanes").innerHTML = lanes.map((x,i)=>`
+    <div class="lane">
+      <div class="pos num">${i+1}</div>
+      <div class="who"><b>${esc(x.nombre)}</b><small>Cód. ${x.cod} · base ${x.base} · faltan ${x.falta}</small></div>
+      <div class="bar" role="img" aria-label="${esc(x.nombre)}: ${x.con} de ${x.obj} clientes objetivo">
+        <div class="fill" style="width:${Math.min(x.cob/scale,1)*100}%"></div>
+        <div class="goal" style="left:${p.pct/scale*100}%"></div>
+      </div>
+      <div class="res num">${x.con} / ${x.obj}<small>${pct(x.cob)} cob.</small></div>
+    </div>`).join("");
+
+  const cols = [
+    ["cod","Código",0],["nombre","Vendedor",1],["base","Base clientes",0],["obj","Objetivo clientes",0],
+    ["con","Con compra",0],["sin","Sin compra",0],["cob","Cobertura",0],["falta","Faltan",0],["cumpl","Cumplimiento",0]];
+  const q = state.q.toLowerCase();
+  let tr = r.filter(x=>!q || x.nombre.toLowerCase().includes(q) || String(x.cod).includes(q));
+  const {col,dir} = state.sort;
+  tr.sort((a,b)=> (typeof a[col]==="string" ? a[col].localeCompare(b[col]) : a[col]-b[col]) * dir);
+  const arrow = c => c===col ? (dir>0?" ▲":" ▼") : "";
+  document.getElementById("tabla").innerHTML = `
+    <thead><tr>${cols.map(([c,t,l])=>`<th class="${l?"l":""}" data-col="${c}" tabindex="0">${t}${arrow(c)}</th>`).join("")}</tr></thead>
+    <tbody>${tr.map(x=>`<tr>
+      <td class="num">${x.cod}</td><td class="l">${esc(x.nombre)}</td><td class="num">${x.base}</td><td class="num">${x.obj}</td>
+      <td class="num"><b>${x.con}</b></td><td class="num">${x.sin}</td><td class="num">${pct(x.cob)}</td><td class="num">${x.falta}</td><td>${pill(x.cumpl)}</td></tr>`).join("")}</tbody>
+    <tfoot><tr><td></td><td class="l">Total</td><td class="num">${fmt(T.base)}</td><td class="num">${fmt(T.obj)}</td><td class="num">${fmt(T.con)}</td>
+      <td class="num">${fmt(T.sin)}</td><td class="num">${pct(T.con/T.base)}</td><td class="num">${fmt(r.reduce((a,x)=>a+x.falta,0))}</td><td>${pill(T.con/T.obj)}</td></tr></tfoot>`;
+  document.querySelectorAll("#tabla th").forEach(th=>{
+    const go=()=>{ const c=th.dataset.col; state.sort = {col:c, dir: state.sort.col===c ? -state.sort.dir : (c==="nombre"||c==="cod"?1:-1)}; renderProducto(); };
+    th.onclick=go; th.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();go();} };
+  });
+}
+
+function renderResumen(){
+  const R = {sussex:rows("sussex"), higienol:rows("higienol"), babysec:rows("babysec")};
+  const q = (document.getElementById("q2").value||"").toLowerCase();
+  const cell = (x,k) => `<td class="num">${x.con} / ${x.obj}</td><td><div class="mini"><span class="num">${pct(x.cob)}</span><span class="bar"><span class="fill" style="width:${Math.min(x.cumpl,1)*100}%;background:var(--${k})"></span></span></div></td>`;
+  const tot = k => R[k].reduce((a,x)=>({con:a.con+x.con,obj:a.obj+x.obj,base:a.base+x.base}),{con:0,obj:0,base:0});
+  const body = DATA.map((v,i)=>({v,i})).filter(({v})=>!q || v.nombre.toLowerCase().includes(q) || String(v.cod).includes(q))
+    .map(({v,i})=>`<tr><td class="num">${v.cod}</td><td class="l">${esc(v.nombre)}</td><td class="num">${v.base}</td>
+      ${cell(R.sussex[i],"sussex")}${cell(R.higienol[i],"higienol")}${cell(R.babysec[i],"babysec")}
+      <td class="num">${[R.sussex[i],R.higienol[i],R.babysec[i]].filter(x=>x.con>=x.obj).length} / 3</td></tr>`).join("");
+  const ft = k => { const t=tot(k); return `<td class="num">${fmt(t.con)} / ${fmt(t.obj)}</td><td class="num">${pct(t.con/t.base)}</td>`; };
+  document.getElementById("resumen").innerHTML = `
+    <thead><tr><th colspan="3"></th><th colspan="2" class="grp grpS">Sussex · 20 %</th><th colspan="2" class="grp grpH">Higienol · 45 %</th><th colspan="2" class="grp grpB">Babysec · 20 %</th><th></th></tr>
+    <tr><th>Código</th><th class="l">Vendedor</th><th>Base</th><th>Con compra / obj.</th><th>Cobertura</th><th>Con compra / obj.</th><th>Cobertura</th><th>Con compra / obj.</th><th>Cobertura</th><th>Objetivos cumplidos</th></tr></thead>
+    <tbody>${body}</tbody>
+    <tfoot><tr><td></td><td class="l">Total</td><td class="num">${fmt(tot("sussex").base)}</td>${ft("sussex")}${ft("higienol")}${ft("babysec")}<td></td></tr></tfoot>`;
+}
+
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{state.k=b.dataset.k; render();});
+document.getElementById("neta").onchange=e=>{state.neta=e.target.checked; render();};
+document.getElementById("q").oninput=e=>{state.q=e.target.value; renderProducto();};
+document.getElementById("q2").oninput=()=>renderResumen();
+render();
+</script>
+</body>
+</html>
