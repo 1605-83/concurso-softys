@@ -2,7 +2,8 @@ name: Actualizar ventas desde Gescom
 
 on:
   schedule:
-    - cron: '0 10 * * *'   # 10:00 UTC = 07:00 hora argentina, todos los dias
+    - cron: '0 10 * * 1-5'    # 10:00 UTC = 07:00 hora argentina, lunes a viernes
+    - cron: '30 16 * * 1-5'   # 16:30 UTC = 13:30 hora argentina, lunes a viernes
   workflow_dispatch:         # boton "Run workflow" para correrlo a mano
 
 permissions:
