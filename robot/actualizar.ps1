@@ -17,6 +17,17 @@ $CONFIG = @{
   'Cobertura-Georgalos' = @{ proveedores = @('42','43');  meses = 2 }   # GEORGALOS + GENERAL CEREALS
   'Concurso-Bic'        = @{ proveedores = @('119');      meses = 1 }   # BIC ARGENTINA S.A
   'concurso-softys'     = @{ proveedores = @('150');      desde = '2026-09-01' }   # SOFTYS, desde el inicio del concurso
+  # Reporte diario LP-ELB: los proveedores del nomenclador del Excel (por nombre), entregas del mes
+  # incluidas las ya cargadas para los proximos dias, y un CSV liviano con las columnas que usa
+  'Reporte-Diario-Ventas' = @{
+    nombres = @('SOFTYS ARGENTINA S.A','GRUPO AYUDIN ARGENTINA S.A','ILOLAY','GEORGALOS','GENERAL CEREALS S.A','RIOSMA','CEPAS ARGENTINAS S.A',
+                'AJINOMOTO','BETTER FOOD SAS','BIC ARGENTINA S.A','BODEGAS SAN HUBERTO S.A','BRURIN','CASTELL S.A','DREAMCO S.A','FECOVITA',
+                'LABORATORIOS ECOVITA S.A','LCB','LEDESMA','MENOYO S.A.','MOLINO CHACABUCO S.A','MORIXE','NECHO S.A','POLDITOS S.A.S',
+                'PORTA HNOS S.A','PRIMEROS PRODUCTOS PEHUENIA','PRO DE MAN S.A','INDUSTRIAS QUIMICAS Y MINERAS TIMBO S.A','LINEA DORADA S.A')
+    meses = 1; futuro = 7
+    columnas = @('Cliente','FechaComprobante','FechaEntrega','NroComprobante','TipoDeVenta','Empresa','Codigo','CantBase','ImporteNetoItem',
+                 'ImporteItem','RazonSocial','CodVendedor','Vendedor','Articulo','PrecioCosto','Proveedor')
+  }
 }
 $cfg = $CONFIG[$Repo]
 if (-not $cfg) { throw "Repo desconocido: '$Repo'. Opciones: $($CONFIG.Keys -join ', ')" }
@@ -49,8 +60,13 @@ try {
   if ($v.actualizado) { $corte = ([datetime]::Parse($v.actualizado, [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::AdjustToUniversal)).AddHours(-3) }
 } catch { Write-Warning "No se pudo leer /estado: $_" }
 
+$hasta = $hoy.AddDays([int]$cfg.futuro)   # futuro: entregas ya cargadas para los proximos dias
+
 function Consultar([datetime]$d1, [datetime]$d2) {
-  $prov = ($cfg.proveedores | ForEach-Object { "'$_'" }) -join ','
+  if ($cfg.nombres) {
+    $lista = ($cfg.nombres | ForEach-Object { "'" + $_.Replace("'", "''") + "'" }) -join ','
+    $prov = "SELECT codigo FROM proveedores WHERE nombre IN ($lista)"
+  } else { $prov = ($cfg.proveedores | ForEach-Object { "'$_'" }) -join ',' }
   $sql = @"
 SELECT v.id, v.fecha, COALESCE(NULLIF(v.entrega,''), v.fecha) AS entrega, v.tipo, v.empresa, v.cliente,
        v.vendedor, v.reparto, v.chofer, COALESCE(ch.nombre, v.chofer) AS chofer_nombre, v.comprobante,
@@ -76,11 +92,16 @@ WHERE a.proveedor IN ($prov)
 ORDER BY v.id, i.orden
 "@
   $r = Pedir 'POST' '/consulta' @{ sql = $sql }
-  if ($r.truncado) { throw "La consulta se corto en $($r.cantidad) filas (tope de la base)" }
+  if ($r.truncado) {
+    # La base devuelve hasta 20.000 filas: si se corta, se pide en dos mitades
+    if ($d1 -ge $d2) { throw "La consulta del $($d1.ToString('yyyy-MM-dd')) se corto en $($r.cantidad) filas (tope de la base)" }
+    $medio = $d1.AddDays([math]::Floor(($d2 - $d1).TotalDays / 2))
+    return @(Consultar $d1 $medio) + @(Consultar $medio.AddDays(1) $d2)
+  }
   @($r.filas)
 }
 
-$filas = Consultar $desde $hoy
+$filas = Consultar $desde $hasta
 # El dia 1 a primera hora el mes nuevo puede estar vacio: en ese caso se muestra el mes anterior entero
 if ($filas.Count -eq 0) {
   $desde = $desde.AddMonths(-1); $hasta = $desde.AddMonths($cfg.meses).AddDays(-1)
@@ -94,6 +115,7 @@ $extra = [IO.File]::ReadAllText((Join-Path $PSScriptRoot 'datos.json'), [Text.En
 
 # ---- Armado del CSV, mismas 62 columnas que el reporte de Gescom ----
 $COLS = 'Cliente;Direccion;Localidad;FechaComprobante;FechaEntrega;FechaCarga;NroComprobante;TipoDeVenta;Empresa;Codigo;CantBase;ImporteNetoItem;ImporteItem;RazonSocial;MotivoDevolucion;Descuento;CodVendedor;Vendedor;RutaPreventa;Articulo;NetoItem;Reparto;ComentarioInterno;Ramo;Subramo;PrecioCosto;Chofer;valorDescuento;Mon_Simbolo;Mon_Decimales;Proveedor;PesoKg;ImpuestoInterno;CondicionPago;FechaLiquidacion;ComboCodigo;Marca;Linea;Sabor;Calibre;Familia;Rubro;Tags;Promociones;SegmentoRentabilidad;CodSupervisor;NomSupervisor;Origen;ComprobanteReferencia;Etiqueta;VentaDirecta;NumeroVenta;Pendiente;ListaPrecio;Taxonomia;OrdenPreparacion;FechaPreparacion;Bodeguistas;EtiquetaItem;UnidadFactor;PesoKgReal;NetoItemReal'.Split(';')
+if ($cfg.columnas) { $COLS = $cfg.columnas }   # CSV liviano: solo las columnas que usa ese tablero
 $EMPRESAS = @{ '3' = 'LAGOPUELO S.A'; '97' = 'Empresa LAGOPUELO'; '1' = 'ELEBES S.A.'; '99' = 'ELEBES' }
 $o = [char]0xF3; $e = [char]0xE9   # o y e con acento (el script queda en ASCII puro)
 $TIPOS = @{ 'VEN' = 'Venta'; 'DEB' = "Nota de D$($e)bito"; 'DEV-RE' = "Devoluci$($o)n por Rechazo"; 'DEV-CA' = "Devoluci$($o)n por Canje" }
@@ -141,7 +163,7 @@ foreach ($f in $filas) {
   $r.Reparto = $f.reparto
   $r.Ramo = $f.ramo
   $r.Subramo = $f.subramo
-  $r.PrecioCosto = Num $f.precio_costo
+  $r.PrecioCosto = Num ($signo * [double]$f.precio_costo * [double]$f.cantidad)   # costo del renglon, como el reporte de Gescom
   $r.Chofer = $f.chofer_nombre
   $r.Mon_Simbolo = '$'
   $r.Mon_Decimales = '2'
@@ -169,5 +191,5 @@ Get-ChildItem -Path $Salida -Filter '*.csv' -File | Where-Object { $_.FullName -
 
 $n = ($filas | Measure-Object).Count
 $neto = ($filas | ForEach-Object { if ($_.tipo -like 'DEV-*') { -[double]$_.neto } else { [double]$_.neto } } | Measure-Object -Sum).Sum
-Write-Host "$Repo : $n renglones, entrega $($desde.ToString('dd/MM/yyyy')) a $($hoy.ToString('dd/MM/yyyy')), venta neta $([math]::Round($neto).ToString('N0', $ar)) (sin IVA), datos al $($corte.ToString('dd/MM/yyyy HH:mm'))"
+Write-Host "$Repo : $n renglones, entrega $($desde.ToString('dd/MM/yyyy')) a $($hasta.ToString('dd/MM/yyyy')),venta neta $([math]::Round($neto).ToString('N0', $ar)) (sin IVA), datos al $($corte.ToString('dd/MM/yyyy HH:mm'))"
 Write-Host "Archivo: $nombre"
