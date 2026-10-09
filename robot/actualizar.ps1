@@ -17,19 +17,22 @@ $CONFIG = @{
   'Cobertura-Georgalos' = @{ proveedores = @('42','43');  meses = 2 }   # GEORGALOS + GENERAL CEREALS
   'Concurso-Bic'        = @{ proveedores = @('119');      meses = 1 }   # BIC ARGENTINA S.A
   'concurso-softys'     = @{ proveedores = @('150');      desde = '2026-09-01' }   # SOFTYS, desde el inicio del concurso
-  # Reporte diario LP-ELB: los proveedores del nomenclador del Excel (por nombre), entregas del mes
-  # incluidas las ya cargadas para los proximos dias, y un CSV liviano con las columnas que usa
+  # Reporte diario LP-ELB: los proveedores del nomenclador del Excel (por nombre) y un CSV liviano con las columnas que usa.
+  # todasFechas: el tablero deja elegir fecha de comprobante, de entrega o de carga, asi que cada mes trae los renglones
+  # con CUALQUIERA de las tres fechas en el mes (incluidos pedidos sin facturar y entregas de los proximos dias)
   'Reporte-Diario-Ventas' = @{
     nombres = @('SOFTYS ARGENTINA S.A','GRUPO AYUDIN ARGENTINA S.A','ILOLAY','GEORGALOS','GENERAL CEREALS S.A','RIOSMA','CEPAS ARGENTINAS S.A',
                 'AJINOMOTO','BETTER FOOD SAS','BIC ARGENTINA S.A','BODEGAS SAN HUBERTO S.A','BRURIN','CASTELL S.A','DREAMCO S.A','FECOVITA',
                 'LABORATORIOS ECOVITA S.A','LCB','LEDESMA','MENOYO S.A.','MOLINO CHACABUCO S.A','MORIXE','NECHO S.A','POLDITOS S.A.S',
                 'PORTA HNOS S.A','PRIMEROS PRODUCTOS PEHUENIA','PRO DE MAN S.A','INDUSTRIAS QUIMICAS Y MINERAS TIMBO S.A','LINEA DORADA S.A')
-    desde = '2026-08-01'; porMes = $true; futuro = 7   # la base tiene ventas desde el 1/8/2026
+    desde = '2026-08-01'; porMes = $true; futuro = 7; todasFechas = $true   # la base tiene ventas desde el 1/8/2026
     columnas = @('Cliente','FechaComprobante','FechaEntrega','NroComprobante','TipoDeVenta','Empresa','Codigo','CantBase','ImporteNetoItem',
                  'ImporteItem','RazonSocial','CodVendedor','Vendedor','Articulo','PrecioCosto','Proveedor','Categoria','FechaCarga','MotivoDevolucion')
   }
 }
 $cfg = $CONFIG[$Repo]
+# todos los tableros dejan elegir fecha de comprobante, de entrega o de carga (pedido de Bruno, 9/10/2026)
+if ($cfg) { $cfg.todasFechas = $true }
 if (-not $cfg) { throw "Repo desconocido: '$Repo'. Opciones: $($CONFIG.Keys -join ', ')" }
 $clave = $env:GESCOM_LPE_CLAVE
 if (-not $clave) { throw 'Falta la variable de entorno GESCOM_LPE_CLAVE' }
@@ -62,17 +65,26 @@ try {
 
 # Todos los tableros toman la venta por FECHA DE COMPROBANTE (pedido de Bruno, 9/10/2026): solo lo facturado, hasta hoy
 $hasta = $hoy
+if ($cfg.todasFechas -and $cfg.futuro) { $hasta = $hoy.AddDays($cfg.futuro) }   # entregas ya programadas
 
 function Consultar([datetime]$d1, [datetime]$d2) {
   if ($cfg.nombres) {
     $lista = ($cfg.nombres | ForEach-Object { "'" + $_.Replace("'", "''") + "'" }) -join ','
     $prov = "SELECT codigo FROM proveedores WHERE nombre IN ($lista)"
   } else { $prov = ($cfg.proveedores | ForEach-Object { "'$_'" }) -join ',' }
+  $a1 = $d1.ToString('yyyy-MM-dd'); $a2 = $d2.ToString('yyyy-MM-dd')
+  $FCOMP = "(CASE WHEN v.tipo IN ('DEV-RE','DEB') THEN v.fecha ELSE COALESCE(NULLIF(v.entrega,''), v.fecha) END)"
+  if ($cfg.todasFechas) {
+    $filtroFecha = "(($FCOMP BETWEEN '$a1' AND '$a2' AND NULLIF(v.comprobante,'') IS NOT NULL)
+       OR COALESCE(NULLIF(v.entrega,''), v.fecha) BETWEEN '$a1' AND '$a2' OR v.fecha BETWEEN '$a1' AND '$a2')"
+  } else {
+    $filtroFecha = "NULLIF(v.comprobante,'') IS NOT NULL AND $FCOMP BETWEEN '$a1' AND '$a2'"
+  }
   $sql = @"
-SELECT v.id, v.fecha, COALESCE(NULLIF(v.entrega,''), v.fecha) AS entrega, v.tipo,
+SELECT v.id, i.orden, v.fecha, COALESCE(NULLIF(v.entrega,''), v.fecha) AS entrega, v.tipo,
        -- FECHA DE COMPROBANTE: la base no la guarda. Medido contra el reporte de Gescom (12.411 renglones, oct 2026):
        -- facturas y canjes = fecha de entrega (99,4%); NC por rechazo y notas de debito = dia de carga de la nota (100%)
-       (CASE WHEN v.tipo IN ('DEV-RE','DEB') THEN v.fecha ELSE COALESCE(NULLIF(v.entrega,''), v.fecha) END) AS fecha_comp, v.empresa, v.cliente,
+       $FCOMP AS fecha_comp, v.empresa, v.cliente,
        v.vendedor, v.reparto, v.chofer, COALESCE(ch.nombre, v.chofer) AS chofer_nombre, v.comprobante,
        v.ref_id, v.directa, v.origen, v.motivo,
        i.articulo, i.cantidad, i.factor, i.neto, i.total, i.precio_costo, i.precio_unitario,
@@ -92,9 +104,7 @@ LEFT JOIN empleados su ON su.codigo = e.superior
 LEFT JOIN empleados ch ON ch.codigo = v.chofer
 WHERE a.proveedor IN ($prov)
   AND v.tipo IN ('VEN','DEB','DEV-RE','DEV-CA')
-  AND NULLIF(v.comprobante,'') IS NOT NULL
-  AND (CASE WHEN v.tipo IN ('DEV-RE','DEB') THEN v.fecha ELSE COALESCE(NULLIF(v.entrega,''), v.fecha) END)
-      BETWEEN '$($d1.ToString('yyyy-MM-dd'))' AND '$($d2.ToString('yyyy-MM-dd'))'
+  AND $filtroFecha
 ORDER BY v.id, i.orden
 "@
   $r = Pedir 'POST' '/consulta' @{ sql = $sql }
@@ -102,7 +112,9 @@ ORDER BY v.id, i.orden
     # La base devuelve hasta 20.000 filas: si se corta, se pide en dos mitades
     if ($d1 -ge $d2) { throw "La consulta del $($d1.ToString('yyyy-MM-dd')) se corto en $($r.cantidad) filas (tope de la base)" }
     $medio = $d1.AddDays([math]::Floor(($d2 - $d1).TotalDays / 2))
-    return @(Consultar $d1 $medio) + @(Consultar $medio.AddDays(1) $d2)
+    # con todasFechas un renglon puede caer en las dos mitades (p. ej. cargado en una y entregado en la otra): va una vez
+    $vistos = @{}
+    return @(@(Consultar $d1 $medio) + @(Consultar $medio.AddDays(1) $d2) | Where-Object { $k = "$($_.id)|$($_.orden)"; if ($vistos[$k]) { $false } else { $vistos[$k] = 1; $true } })
   }
   @($r.filas)
 }
