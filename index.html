@@ -92,7 +92,7 @@ const stat=c=>{const o=G[st.g].o;return c>=o?'ok':c>=o*.75?'warn':'bad'};const C
 const esc=s=>String(s).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
 function render(){
  const g=G[st.g];document.documentElement.style.setProperty('--accent',g.c);
- document.getElementById('sub').textContent=`Entregas del ${D.rango[0]} al ${D.rango[1]} · 20 vendedores`;
+ document.getElementById('sub').textContent=`Ventas del ${D.rango[0]} al ${D.rango[1]} · 20 vendedores`;
  document.getElementById('tabs').innerHTML=Object.entries(G).map(([k,x])=>`<button class="tab" role="tab" style="--c:${x.c}" aria-selected="${k===st.g}" data-g="${k}">${x.t}<small>${x.s} · objetivo ${Math.round(x.o*100)}%</small></button>`).join('');
  document.getElementById('period').innerHTML=P.map(([k,t])=>`<button aria-pressed="${k===st.p}" data-p="${k}">${t}</button>`).join('');
  let rows=calc();
@@ -140,8 +140,8 @@ function armarD(R){
  const V=new Map(D.v.map(v=>[v.c,{c:v.c,n:v.n,b:v.b,cl:new Map()}]));
  let dmin='',dmax='';
  for(const r of R){
-  const m=String(r.FechaEntrega).trim().match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);if(!m)continue;
-  const dd=m[1].padStart(2,'0'),mm=m[2].padStart(2,'0'),iso=m[3]+mm+dd,ym=m[3]+'-'+mm;
+  const m=String(r.FechaComprobante||'').trim().match(/^(\d{4})-(\d{2})-(\d{2})/);if(!m)continue;   // por fecha de comprobante
+  const dd=m[3],mm=m[2],iso=m[1]+mm+dd,ym=m[1]+'-'+mm;
   if(!dmin||iso<dmin)dmin=iso;if(!dmax||iso>dmax)dmax=iso;
   const v=V.get(parseInt(r.CodVendedor,10));if(!v)continue;
   const id=String(r.Cliente).trim();let c=v.cl.get(id);
