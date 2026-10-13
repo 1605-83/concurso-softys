@@ -145,7 +145,7 @@ function JsonTxt($s) {
   [void]$sb.Append('"'); $sb.ToString()
 }
 try {
-  $cli = @((Pedir 'POST' '/consulta' @{ sql = "SELECT codigo, COALESCE(NULLIF(razon_social,''), nombre) AS n, localidad, COALESCE(NULLIF(subramo,''), ramo) AS ramo, vendedor, rutas FROM clientes WHERE activo = 1 AND NULLIF(vendedor,'') IS NOT NULL ORDER BY vendedor, codigo" }).filas)
+  $cli = @((Pedir 'POST' '/consulta' @{ sql = "SELECT c.codigo, COALESCE(NULLIF(c.razon_social,''), c.nombre) AS n, c.localidad, COALESCE(NULLIF(sr.descripcion,''), NULLIF(c.ramo,'')) AS ramo, c.vendedor, c.rutas FROM clientes c LEFT JOIN subramos sr ON sr.codigo = c.subramo WHERE c.activo = 1 AND NULLIF(c.vendedor,'') IS NOT NULL ORDER BY c.vendedor, c.codigo" }).filas)
   $porV = [ordered]@{}
   foreach ($c in $cli) {
     $v = "$($c.vendedor)".Trim(); if ($v -match '^\d+$') { $v = "$([int]$v)" }
