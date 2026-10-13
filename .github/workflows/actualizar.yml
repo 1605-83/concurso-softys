@@ -30,7 +30,9 @@ jobs:
         run: |
           git config user.name "robot-gescom"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          { ls -1 *.csv meses/*.csv 2>/dev/null || true; } | awk 'BEGIN{printf "{\"archivos\":["} {printf "%s\"%s\"", (NR>1?",":""), $0} END{print "]}"}' > archivos.json
           git add -A -- '*.csv'
+          git add archivos.json
           if [ -f carteras.json ]; then git add carteras.json; fi
           if git diff --cached --quiet; then
             echo "Sin cambios: no se sube nada"

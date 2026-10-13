@@ -73,6 +73,19 @@ tr.detail td{padding:0;background:var(--soft);text-align:left}
 <p class="foot">Obj.: clientes necesarios para llegar al objetivo de cobertura sobre la base. La línea oscura en cada barra marca el objetivo; verde = cumplido, naranja = 75% o más del objetivo, rojo = por debajo. CCC: clientes con compra neta positiva (ventas menos devoluciones) de los códigos del grupo. NC = Base − CCC. El listado de cada vendedor muestra los clientes que compraron otros productos Softys en el período pero no estos códigos; los clientes de la base que no compraron nada de Softys no figuran en el archivo de ventas.</p>
 </div>
 <script>
+// Lista de archivos del repo: primero archivos.json (lo arma el robot, se sirve desde el mismo sitio y no tiene
+// limite de consultas); si no esta, la API de GitHub (60 consultas por hora por conexion).
+async function contenidoRepo(apiUrl, carpeta){
+  try{
+    const r=await fetch('archivos.json?t='+Date.now(),{cache:'no-store'});
+    if(r.ok){ const j=await r.json(); const pre=carpeta? carpeta+'/' : '';
+      const lst=(j.archivos||[]).filter(p=>pre? p.startsWith(pre) : !p.includes('/'))
+        .map(p=>({name:p.slice(pre.length), type:'file', download_url:p}));
+      if(lst.length) return {ok:true, status:200, json:async()=>lst}; }
+  }catch(e){}
+  return fetch(apiUrl,{cache:'no-store'});
+}
+
 // ---- Tipo de fecha: comprobante (solo lo facturado), entrega o carga. Va en la direccion (?fecha=ent) y se recuerda ----
 const TF_KEY='concurso-softys-tipo-fecha', TF_NOM={comp:'fecha de comprobante',ent:'fecha de entrega',car:'fecha de carga'};
 let TIPO_F=new URLSearchParams(location.search).get('fecha')||''; if(!TIPO_F){ try{ TIPO_F=localStorage.getItem(TF_KEY)||''; }catch(e){} }
@@ -169,7 +182,7 @@ function armarD(R){
  return {v:[...V.values()].map(v=>({c:v.c,n:v.n,b:v.b,cl:[...v.cl.values()]})),rango:[f(dmin),f(dmax)]};
 }
 (async()=>{try{
- const r=await fetch('https://api.github.com/repos/1605-83/concurso-softys/contents/',{cache:'no-store'});if(!r.ok)return;
+ const r=await contenidoRepo('https://api.github.com/repos/1605-83/concurso-softys/contents/','');if(!r.ok)return;
  const files=(await r.json()).filter(x=>x.type==='file'&&/\.csv$/i.test(x.name));if(!files.length)return;
  const key=x=>{const m=x.name.match(/(\d{8})-(\d{6})/);return m?m[1]+m[2]:'0'+x.name};
  files.sort((a,b)=>key(b).localeCompare(key(a)));
