@@ -76,11 +76,12 @@ tr.detail td{padding:0;background:var(--soft);text-align:left}
 // Lista de archivos del repo: primero archivos.json (lo arma el robot, se sirve desde el mismo sitio y no tiene
 // limite de consultas); si no esta, la API de GitHub (60 consultas por hora por conexion).
 async function contenidoRepo(apiUrl, carpeta){
+  const repo=apiUrl.split('/repos/')[1].split('/contents')[0];
   try{
     const r=await fetch('archivos.json?t='+Date.now(),{cache:'no-store'});
     if(r.ok){ const j=await r.json(); const pre=carpeta? carpeta+'/' : '';
       const lst=(j.archivos||[]).filter(p=>pre? p.startsWith(pre) : !p.includes('/'))
-        .map(p=>({name:p.slice(pre.length), type:'file', download_url:p}));
+        .map(p=>({name:p.slice(pre.length), type:'file', download_url:'https://raw.githubusercontent.com/'+repo+'/main/'+p.split('/').map(encodeURIComponent).join('/')}));
       if(lst.length) return {ok:true, status:200, json:async()=>lst}; }
   }catch(e){}
   return fetch(apiUrl,{cache:'no-store'});
