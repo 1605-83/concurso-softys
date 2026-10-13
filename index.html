@@ -147,6 +147,8 @@ function parseCSV(t){const rows=[];let row=[],f='',q=false;for(let i=0;i<t.lengt
  if(f||row.length){row.push(f.replace(/\r$/,''));rows.push(row)}
  const H=rows.shift().map(h=>h.trim());return rows.filter(r=>r.length>5).map(r=>Object.fromEntries(H.map((h,i)=>[h,r[i]??''])))}
 const etiquetaAct=n=>{ const m=String(n||'').match(/(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})/); return (m? `Datos de ventas al ${m[3]}/${m[2]}/${m[1]} · ` : '')+'Se actualiza a las 7 hs y 13:30 hs'; };   // fecha de los datos (del nombre del CSV) y horario del robot
+// carteras de clientes por vendedor: carteras.json, lo arma el robot con los clientes activos de la ficha de Gescom
+const CARTERAS=fetch('carteras.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok? r.json() : null).catch(()=>null);
 function armarD(R){
  const num=s=>parseFloat(String(s||'').trim().replace(/\./g,'').replace(',','.'))||0;
  const viejo=new Map(D.v.flatMap(v=>v.cl.map(c=>[c.id,c])));
@@ -174,6 +176,7 @@ function armarD(R){
  const d=await fetch(files[0].download_url+'?t='+Date.now());if(!d.ok)return;
  const R=parseCSV(new TextDecoder('windows-1252').decode(await d.arrayBuffer()));
  if(!R.length||!('CodVendedor' in R[0]))return;
+ const cc=await CARTERAS;if(cc&&cc.v)D.v.forEach(v=>{const l=cc.v[String(v.c)];if(l)v.b=l.length;});
  const nuevo=armarD(R);if(!nuevo.v.some(v=>v.cl.length))return;
  D=nuevo;render();
  const m=files[0].name.match(/(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})/);

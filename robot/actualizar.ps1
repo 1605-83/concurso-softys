@@ -133,6 +133,33 @@ if (-not $cfg.porMes) {
 # ---- Datos que la base no tiene (Familia del articulo y direccion del cliente) ----
 $extra = [IO.File]::ReadAllText((Join-Path $PSScriptRoot 'datos.json'), [Text.Encoding]::UTF8) | ConvertFrom-Json
 
+# ---- Carteras de clientes por vendedor (pedido de Bruno, 13/10/2026) ----
+# carteras.json: los clientes ACTIVOS de la ficha de Gescom agrupados por su vendedor (la ruta de preventa).
+# Los tableros sacan de aca la base de clientes de cada vendedor y el padron de "clientes sin compra".
+# Si falla, se sigue con las ventas (los tableros usan sus bases fijas).
+function JsonTxt($s) {
+  $s = "$s"; $sb = New-Object Text.StringBuilder; [void]$sb.Append('"')
+  foreach ($ch in $s.ToCharArray()) {
+    switch ($ch) { '"' { [void]$sb.Append('\"') } '\' { [void]$sb.Append('\\') } default { if ([int]$ch -lt 32) { [void]$sb.Append(' ') } else { [void]$sb.Append($ch) } } }
+  }
+  [void]$sb.Append('"'); $sb.ToString()
+}
+try {
+  $cli = @((Pedir 'POST' '/consulta' @{ sql = "SELECT codigo, COALESCE(NULLIF(razon_social,''), nombre) AS n, localidad, COALESCE(NULLIF(subramo,''), ramo) AS ramo, vendedor, rutas FROM clientes WHERE activo = 1 AND NULLIF(vendedor,'') IS NOT NULL ORDER BY vendedor, codigo" }).filas)
+  $porV = [ordered]@{}
+  foreach ($c in $cli) {
+    $v = "$($c.vendedor)".Trim(); if ($v -match '^\d+$') { $v = "$([int]$v)" }
+    $dias = ''; try { $rr = "$($c.rutas)" | ConvertFrom-Json; if ($rr) { $dias = "$(@($rr)[0].dias)" } } catch { }
+    $cod = "$($c.codigo)".Trim()
+    $fila = '[' + ((@($cod, $c.n, $extra.direcciones.$cod, $c.localidad, $c.ramo, $dias) | ForEach-Object { JsonTxt $_ }) -join ',') + ']'
+    if (-not $porV.Contains($v)) { $porV[$v] = New-Object Collections.Generic.List[string] }
+    $porV[$v].Add($fila)
+  }
+  $json = '{"fecha":' + (JsonTxt $corte.ToString('yyyy-MM-dd HH:mm')) + ',"v":{' + (($porV.Keys | ForEach-Object { (JsonTxt $_) + ':[' + ($porV[$_] -join ',') + ']' }) -join ',') + '}}'
+  [IO.File]::WriteAllText((Join-Path (Resolve-Path $Salida) 'carteras.json'), $json, (New-Object Text.UTF8Encoding $false))
+  Write-Host "carteras.json: $($cli.Count) clientes activos en $($porV.Count) vendedores"
+} catch { Write-Warning "No se pudieron armar las carteras: $_" }
+
 # ---- Armado del CSV, mismas 62 columnas que el reporte de Gescom ----
 $COLS = 'Cliente;Direccion;Localidad;FechaComprobante;FechaEntrega;FechaCarga;NroComprobante;TipoDeVenta;Empresa;Codigo;CantBase;ImporteNetoItem;ImporteItem;RazonSocial;MotivoDevolucion;Descuento;CodVendedor;Vendedor;RutaPreventa;Articulo;NetoItem;Reparto;ComentarioInterno;Ramo;Subramo;PrecioCosto;Chofer;valorDescuento;Mon_Simbolo;Mon_Decimales;Proveedor;PesoKg;ImpuestoInterno;CondicionPago;FechaLiquidacion;ComboCodigo;Marca;Linea;Sabor;Calibre;Familia;Rubro;Tags;Promociones;SegmentoRentabilidad;CodSupervisor;NomSupervisor;Origen;ComprobanteReferencia;Etiqueta;VentaDirecta;NumeroVenta;Pendiente;ListaPrecio;Taxonomia;OrdenPreparacion;FechaPreparacion;Bodeguistas;EtiquetaItem;UnidadFactor;PesoKgReal;NetoItemReal'.Split(';')
 if ($cfg.columnas) { $COLS = $cfg.columnas }   # CSV liviano: solo las columnas que usa ese tablero
