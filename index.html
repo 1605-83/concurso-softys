@@ -146,7 +146,7 @@ function parseCSV(t){const rows=[];let row=[],f='',q=false;for(let i=0;i<t.lengt
  else if(ch==='\n'){row.push(f.replace(/\r$/,''));rows.push(row);row=[];f=''}else f+=ch}
  if(f||row.length){row.push(f.replace(/\r$/,''));rows.push(row)}
  const H=rows.shift().map(h=>h.trim());return rows.filter(r=>r.length>5).map(r=>Object.fromEntries(H.map((h,i)=>[h,r[i]??''])))}
-const etiquetaAct=n=>{ const m=String(n||'').match(/(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})/); return (m? `Datos de ventas al ${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]} hs · ` : '')+'Se actualiza solo: lun a vie 7:00 y 13:30 hs'; };   // fecha de los datos (del nombre del CSV) y horario del robot
+const etiquetaAct=n=>{ const m=String(n||'').match(/(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})/); return (m? `Datos de ventas al ${m[3]}/${m[2]}/${m[1]} · ` : '')+'Se actualiza a las 7 hs y 13:30 hs'; };   // fecha de los datos (del nombre del CSV) y horario del robot
 function armarD(R){
  const num=s=>parseFloat(String(s||'').trim().replace(/\./g,'').replace(',','.'))||0;
  const viejo=new Map(D.v.flatMap(v=>v.cl.map(c=>[c.id,c])));
