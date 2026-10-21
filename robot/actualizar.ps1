@@ -145,7 +145,10 @@ function JsonTxt($s) {
   [void]$sb.Append('"'); $sb.ToString()
 }
 try {
-  $cli = @((Pedir 'POST' '/consulta' @{ sql = "SELECT c.codigo, COALESCE(NULLIF(c.razon_social,''), c.nombre) AS n, c.localidad, COALESCE(NULLIF(sr.descripcion,''), NULLIF(c.ramo,'')) AS ramo, c.vendedor, c.rutas FROM clientes c LEFT JOIN subramos sr ON sr.codigo = c.subramo WHERE c.activo = 1 AND NULLIF(c.vendedor,'') IS NOT NULL ORDER BY c.vendedor, c.codigo" }).filas)
+# Clientes que en Gescom ya no estan en la cartera (no salen en la exportacion de clientes que paso Bruno el 21/10/2026)
+# pero la copia de la base los sigue dando activos: la copia solo actualiza los clientes que cambian y no ve esas bajas
+$NO_ACTIVOS = "'101466','103062','106218','106559','108768','197','3186','3229','326','329372','3557','4153','5799','711','104111','106161','106162','106273','107503','107885','3039','388'"
+  $cli = @((Pedir 'POST' '/consulta' @{ sql = "SELECT c.codigo, COALESCE(NULLIF(c.razon_social,''), c.nombre) AS n, c.localidad, COALESCE(NULLIF(sr.descripcion,''), NULLIF(c.ramo,'')) AS ramo, c.vendedor, c.rutas FROM clientes c LEFT JOIN subramos sr ON sr.codigo = c.subramo WHERE c.activo = 1 AND NULLIF(c.vendedor,'') IS NOT NULL AND ltrim(c.codigo,'0') NOT IN ($NO_ACTIVOS) ORDER BY c.vendedor, c.codigo" }).filas)
   $porV = [ordered]@{}
   foreach ($c in $cli) {
     $v = "$($c.vendedor)".Trim(); if ($v -match '^\d+$') { $v = "$([int]$v)" }
