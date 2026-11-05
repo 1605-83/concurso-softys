@@ -9,7 +9,7 @@
 <style>
 /* Pedido de Bruno (05/11/2026): fondo celeste y letras negras */
 :root{
-  --bg:#BFE6FF; --panel:#E3F4FF; --line:#7CC4F0; --ink:#000; --ink2:#0B2A3D; --bar:#A6DBFA; --input:#fff;
+  --bg:#BFE6FF; --panel:#fff; --line:#CFE3F0; --ink:#000; --ink2:#0B2A3D; --bar:#A6DBFA; --input:#fff;
   --ok:#5BE36B; --mid:#FFE14D; --low:#FF7A7A;
   color-scheme:light;
 }
@@ -41,7 +41,7 @@ th,td{padding:9px 12px;text-align:right;border-bottom:1px solid var(--line);whit
 th{background:var(--ink);color:#fff;font-weight:600;font-size:.82rem}
 th.l,td.l{text-align:left}
 tbody tr:hover{background:#D2EEFF}
-tfoot td{font-weight:800;border-top:2px solid var(--ink);border-bottom:0;background:var(--bar)}
+tfoot td{font-weight:800;border-top:2px solid var(--ink);border-bottom:0;background:#fff}
 .cod{font-weight:800}
 .chip{display:inline-block;min-width:62px;text-align:center;padding:2px 8px;border-radius:999px;border:1px solid #000;font-weight:800;color:#000}
 .meter{position:relative;height:16px;min-width:170px;border:1px solid #000;border-radius:3px;background:#fff;overflow:hidden}
@@ -71,14 +71,12 @@ footer{margin-top:22px;font-size:.82rem;color:var(--ink2);max-width:90ch}
     <p class="act" id="hAct"></p>
   </div>
   <div class="controls">
-    <label>Fecha <select id="fFecha" aria-label="Tipo de fecha"><option value="comp">De comprobante</option><option value="ent">De entrega</option><option value="car">De carga</option></select></label>
     <label>Período <select id="per">
       <option value="b">Bimestre (noviembre + diciembre)</option>
       <option value="11">Noviembre</option>
       <option value="12">Diciembre</option>
     </select></label>
     <label>Importe <select id="iva"><option value="n">Sin IVA</option><option value="b">Con IVA</option></select></label>
-    <label><input type="checkbox" id="pend" checked> Incluir pedidos sin facturar</label>
   </div>
 </header>
 
@@ -91,7 +89,7 @@ footer{margin-top:22px;font-size:.82rem;color:var(--ink2);max-width:90ch}
   <footer>
     Cliente con compra = cliente con compra neta positiva (ventas menos devoluciones) de cualquiera de los protectores diarios del concurso en el período.
     Cobertura = clientes con compra ÷ base de clientes del vendedor. Base = clientes activos de la cartera de cada vendedor en Gescom.
-    Meta = 25% de la base, redondeado hacia arriba. Fecha de comprobante (por defecto): lo facturado, y los pedidos sin facturar se ubican por la fecha de carga. Con fecha de entrega o de carga se cuenta hasta hoy.
+    Meta = 25% de la base, redondeado hacia arriba. Ventas por fecha de comprobante: solo lo facturado (los pedidos sin facturar no cuentan).
     Verde: meta cumplida; amarillo: dos tercios de la meta o más; rojo: menos. <span id="fuente"></span>
   </footer>
 </div>
@@ -117,8 +115,7 @@ const cli = s => String(s||'').trim().replace(/^0+(?=\d)/,'');
 const color = (c,o) => c>=o ? 'var(--ok)' : c>=o*2/3 ? 'var(--mid)' : 'var(--low)';
 let st={}; try{ st=JSON.parse(localStorage.getItem('protectores-v1')||'{}')||{}; }catch(e){}
 const save=()=>{ try{ localStorage.setItem('protectores-v1',JSON.stringify(st)); }catch(e){} };
-if(st.per) $('per').value=st.per; if(st.iva) $('iva').value=st.iva; if(st.pend===false) $('pend').checked=false;
-
+if(st.per) $('per').value=st.per; if(st.iva) $('iva').value=st.iva;
 function parseCSV(txt){const rows=[];let row=[],f='',q=false;for(let i=0;i<txt.length;i++){const ch=txt[i];
   if(q){if(ch==='"'){if(txt[i+1]==='"'){f+='"';i++;}else q=false;}else f+=ch;}
   else if(ch==='"')q=true;else if(ch===';'){row.push(f);f='';}else if(ch==='\n'){row.push(f.replace(/\r$/,''));rows.push(row);row=[];f='';}else f+=ch;}
@@ -127,40 +124,28 @@ const num=s=>{s=String(s||'').trim();return s?parseFloat(s.replace(/\./g,'').rep
 const iso=s=>{s=String(s||'').trim();let m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);if(m)return m[0];
   m=s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);return m?m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0'):'';};
 
-// Tipo de fecha (por defecto, comprobante). Va en la direccion (?fecha=ent) y se recuerda en el navegador
-const TF_KEY='protectores-tipo-fecha', TF_NOM={comp:'fecha de comprobante',ent:'fecha de entrega',car:'fecha de carga'};
-let TIPO_F=new URLSearchParams(location.search).get('fecha')||''; if(!TIPO_F){ try{ TIPO_F=localStorage.getItem(TF_KEY)||''; }catch(e){} }
-if(!TF_NOM[TIPO_F]) TIPO_F='comp';
-const HOY=new Date(Date.now()-3*3600e3).toISOString().slice(0,10);
-$('fFecha').value=TIPO_F;
-$('fFecha').addEventListener('change',e=>{ const v=e.target.value; try{ localStorage.setItem(TF_KEY,v); }catch(err){}
-  const u=new URL(location.href); u.searchParams.set('fecha',v); location.href=u.toString(); });
+// Pedido de Bruno (05/11/2026): solo fecha de comprobante, solo lo facturado (sin pedidos pendientes)
 
 let R=[], CART={}, NOMS={};
 function procesar(txt){
   const rows=parseCSV(txt).filter(r=>r.length>5); const H=rows.shift().map(h=>h.trim());
   const ix=n=>{const i=H.indexOf(n);if(i<0)throw new Error('Falta la columna '+n);return i;};
-  const ien=H.indexOf('FechaEntrega');
   const I={cli:ix('Cliente'),fc:ix('FechaComprobante'),fca:ix('FechaCarga'),cod:ix('Codigo'),cant:ix('CantBase'),neto:ix('ImporteNetoItem'),bru:ix('ImporteItem'),cv:ix('CodVendedor'),art:ix('Articulo'),rs:ix('RazonSocial')};
   const set=new Set(CODIGOS), out=[];
   rows.forEach(r=>{ const c=parseInt(r[I.cod],10); if(!set.has(c)) return;
     const v=parseInt(r[I.cv],10); if(!(v in VEND)) return;
-    const fc=iso(r[I.fc]), pend=fc?0:1;
-    // comprobante: lo facturado (los pedidos sin facturar van por fecha de carga); entrega o carga: hasta hoy
-    const f=TIPO_F==='comp'? (fc||iso(r[I.fca])) : TIPO_F==='ent'? iso(ien>=0?r[ien]:'') : iso(r[I.fca]);
-    if(!f||f<DESDE||f>HASTA||(TIPO_F!=='comp'&&f>HOY)) return;
+    const f=iso(r[I.fc]); if(!f||f<DESDE||f>HASTA) return;   // sin fecha de comprobante = pedido sin facturar: no cuenta
     if(r[I.art] && !ARTS[c]) ARTS[c]=r[I.art].trim();
-    out.push({v,k:cli(r[I.cli]),rs:(r[I.rs]||'').trim(),m:+f.slice(5,7),d:f,c,q:num(r[I.cant]),n:num(r[I.neto]),b:num(r[I.bru]),pend}); });
+    out.push({v,k:cli(r[I.cli]),rs:(r[I.rs]||'').trim(),m:+f.slice(5,7),d:f,c,q:num(r[I.cant]),n:num(r[I.neto]),b:num(r[I.bru])}); });
   return out;
 }
 
 const ABIERTOS=new Set();
 function render(){
-  const per=$('per').value, inclP=$('pend').checked, conIva=$('iva').value==='b';
+  const per=$('per').value, conIva=$('iva').value==='b';
   const by={}; Object.keys(VEND).forEach(v=>by[v]={cli:{},neto:0,q:0});
   let dmax='';
-  R.forEach(x=>{ if(per!=='b' && x.m!==+per) return; if(x.pend && !inclP) return;
-    const o=by[x.v]; o.neto+=conIva?x.b:x.n; o.q+=x.q; o.cli[x.k]=(o.cli[x.k]||0)+x.n; if(x.d>dmax) dmax=x.d; });
+  R.forEach(x=>{ if(per!=='b' && x.m!==+per) return;    const o=by[x.v]; o.neto+=conIva?x.b:x.n; o.q+=x.q; o.cli[x.k]=(o.cli[x.k]||0)+x.n; if(x.d>dmax) dmax=x.d; });
   const rs=Object.keys(VEND).map(Number).map(v=>{ const o=by[v], lst=CART[v]||[], base=lst.length;
     const buy=new Set(Object.keys(o.cli).filter(k=>o.cli[k]>0.5)), cc=buy.size, meta=Math.ceil(base*OBJ);
     const sin=lst.filter(c=>!buy.has(cli(c[0]))).sort((a,b)=>String(a[1]).localeCompare(String(b[1])));
@@ -168,7 +153,7 @@ function render(){
   const tb=rs.reduce((a,r)=>a+r.base,0), tc=rs.reduce((a,r)=>a+r.cc,0), tm=rs.reduce((a,r)=>a+r.meta,0),
         tf=rs.reduce((a,r)=>a+r.falta,0), tn=rs.reduce((a,r)=>a+r.neto,0), tq=rs.reduce((a,r)=>a+r.q,0), ok=rs.filter(r=>r.base&&!r.falta).length;
   const perTxt={b:'noviembre y diciembre 2026','11':'noviembre 2026','12':'diciembre 2026'}[per];
-  $('sub').textContent=`Por ${TF_NOM[TIPO_F]} · período: ${perTxt}${dmax?' · ventas hasta el '+dmax.slice(8)+'/'+dmax.slice(5,7):''} · ${rs.length} vendedores · base total ${fmtN(tb)} clientes`;
+  $('sub').textContent=`Por fecha de comprobante (solo lo facturado) · período: ${perTxt}${dmax?' · ventas hasta el '+dmax.slice(8)+'/'+dmax.slice(5,7):''} · ${rs.length} vendedores · base total ${fmtN(tb)} clientes`;
   $('kpis').innerHTML=[
     ['Cobertura del equipo',fmtP(tb?tc/tb:0),`Objetivo 25% = ${fmtN(tm)} clientes`],
     ['Clientes con compra',fmtN(tc),tf?`Faltan ${fmtN(tf)} para las metas`:'✔ todas las metas cumplidas'],
@@ -197,7 +182,6 @@ function subfila(r){
 document.addEventListener('click',e=>{const b=e.target.closest('.exp');if(!b)return;const v=+b.dataset.v;ABIERTOS.has(v)?ABIERTOS.delete(v):ABIERTOS.add(v);render();});
 $('per').addEventListener('change',()=>{st.per=$('per').value;save();render();});
 $('iva').addEventListener('change',()=>{st.iva=$('iva').value;save();render();});
-$('pend').addEventListener('change',()=>{st.pend=$('pend').checked;save();render();});
 
 // ---- Carga: el CSV de ventas Softys mas reciente (lo baja el robot del Concurso Softys) y las carteras de Gescom ----
 (async()=>{
