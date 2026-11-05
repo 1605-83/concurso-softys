@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Concurso Protectores diarios</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;800;900&display=swap" rel="stylesheet">
+<style>
+/* Pedido de Bruno (05/11/2026): fondo celeste y letras negras */
+:root{
+  --bg:#BFE6FF; --panel:#E3F4FF; --line:#7CC4F0; --ink:#000; --ink2:#0B2A3D; --bar:#A6DBFA; --input:#fff;
+  --ok:#5BE36B; --mid:#FFE14D; --low:#FF7A7A;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --bg:#BFE6FF; --ink:#000; } }
+:root[data-theme="dark"]{ --bg:#BFE6FF; --ink:#000; }
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Archivo",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;font-variant-numeric:tabular-nums;line-height:1.4}
+.wrap{max-width:1320px;margin:0 auto;padding:28px 16px 48px}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px;border-bottom:3px solid var(--ink);padding-bottom:14px}
+h1{font-size:clamp(1.6rem,3.4vw,2.5rem);font-weight:900;margin:0;letter-spacing:-.02em;line-height:1.05}
+.sub{margin:6px 0 0;font-size:.95rem;color:var(--ink2)}
+.act{margin:4px 0 0;font-size:.8rem;color:var(--ink2)}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.controls label{font-size:.88rem;display:flex;align-items:center;gap:6px}
+select{font:inherit;color:var(--ink);background:var(--input);border:1px solid var(--ink);border-radius:6px;padding:6px 8px}
+:focus-visible{outline:3px solid #0057B8;outline-offset:2px}
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;margin-top:22px}
+@media (max-width:1000px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:600px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{padding:14px 16px;border:2px solid var(--ink);border-radius:10px;box-shadow:5px 5px 0 var(--ink);background:#fff;color:#000;min-width:0}
+.kpi .l{font-size:.9rem;font-weight:700;line-height:1.2;min-height:2.4em}
+.kpi .v{font-size:clamp(1.3rem,2.4vw,2.1rem);font-weight:900;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi .n{font-size:.8rem;margin-top:6px}
+h2{font-size:1.35rem;font-weight:900;margin:34px 0 8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+h2 .tag{font-size:.8rem;font-weight:700;border:1px solid #000;border-radius:999px;padding:2px 10px;background:#fff}
+.tbl{overflow-x:auto;border:1px solid var(--ink);border-radius:8px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;min-width:980px;font-size:.95rem}
+th,td{padding:9px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th{background:var(--ink);color:#fff;font-weight:600;font-size:.82rem}
+th.l,td.l{text-align:left}
+tbody tr:hover{background:#D2EEFF}
+tfoot td{font-weight:800;border-top:2px solid var(--ink);border-bottom:0;background:var(--bar)}
+.cod{font-weight:800}
+.chip{display:inline-block;min-width:62px;text-align:center;padding:2px 8px;border-radius:999px;border:1px solid #000;font-weight:800;color:#000}
+.meter{position:relative;height:16px;min-width:170px;border:1px solid #000;border-radius:3px;background:#fff;overflow:hidden}
+.meter i{position:absolute;inset:0 auto 0 0}
+.meter b{position:absolute;top:-2px;bottom:-2px;width:3px;background:#000}
+.exp{font:inherit;font-size:.8rem;font-weight:700;background:#fff;color:#000;border:1px solid #000;border-radius:999px;padding:3px 10px;white-space:nowrap;cursor:pointer}
+.exp[aria-expanded="true"]{background:#000;color:#fff}
+tr.sub td{background:#fff;padding:0 12px 12px;white-space:normal}
+.sublist{border:1px solid var(--line);border-radius:6px;max-height:320px;overflow:auto;margin-top:8px;background:#fff}
+.sublist table{min-width:0;font-size:.85rem}
+.sublist th{position:sticky;top:0}
+.sublist td,.sublist th{padding:5px 10px}
+.subnote{font-size:.85rem;color:var(--ink2);margin:8px 0 0}
+details.cods{margin:0 0 10px;font-size:.88rem}
+details.cods summary{cursor:pointer;font-weight:700;display:inline-block;background:#fff;border:1px solid #000;border-radius:999px;padding:3px 12px}
+details.cods .sublist{max-width:620px}
+footer{margin-top:22px;font-size:.82rem;color:var(--ink2);max-width:90ch}
+#loadMsg{margin:18px 0 0;font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <h1>Concurso bimestral<br>Protectores diarios</h1>
+    <p class="sub" id="sub">Noviembre y diciembre 2026 · objetivo 25% de cobertura por vendedor</p>
+    <p class="act" id="hAct"></p>
+  </div>
+  <div class="controls">
+    <label>Período <select id="per">
+      <option value="b">Bimestre (noviembre + diciembre)</option>
+      <option value="11">Noviembre</option>
+      <option value="12">Diciembre</option>
+    </select></label>
+    <label>Importe <select id="iva"><option value="n">Sin IVA</option><option value="b">Con IVA</option></select></label>
+    <label><input type="checkbox" id="pend" checked> Incluir pedidos sin facturar</label>
+  </div>
+</header>
+
+<p id="loadMsg">Buscando las ventas más recientes…</p>
+<div id="app" hidden>
+  <section class="kpis" id="kpis"></section>
+  <h2>Cobertura por vendedor <span class="tag">Objetivo 25% de la base</span></h2>
+  <details class="cods"><summary id="sCods">Códigos del concurso</summary><div id="dCods"></div></details>
+  <div id="tbl"></div>
+  <footer>
+    Cliente con compra = cliente con compra neta positiva (ventas menos devoluciones) de cualquiera de los protectores diarios del concurso en el período.
+    Cobertura = clientes con compra ÷ base de clientes del vendedor. Base = clientes activos de la cartera de cada vendedor en Gescom.
+    Meta = 25% de la base, redondeado hacia arriba. Ventas por fecha de comprobante; los pedidos sin facturar se ubican por la fecha de carga.
+    Verde: meta cumplida; amarillo: dos tercios de la meta o más; rojo: menos. <span id="fuente"></span>
+  </footer>
+</div>
+</div>
+
+<script>
+// ---- Configuracion del concurso ----
+const CODIGOS = [1509769, 1509749, 1509750, 1509916];          // 9769, 9749, 9750 y 9916 (Softys)
+const DESDE = '2026-11-01', HASTA = '2026-12-31';                 // bimestre
+const OBJ = 0.25;                                                 // 25% de cobertura por vendedor
+const VEND = {2:'Fernanda Cejas',4:'Selene Pawlikowski',5:'Eliana Huber',6:'Nieves Alegre',7:'Myrian Lertora',24:'Cecilia Gauchez',
+  26:'Sabrina Pereira',27:'Samanta Dogliotti',28:'Nadia Diaz',29:'Camila Navarrete',30:'Oriana Sorgini',51:'Ezequiel Valente',
+  52:'Nicole Sosa',53:'Verona Abati',54:'Leonel Caruzo',56:'Ezequiel Ferreira',61:'Nailah Guzman',62:'Nahuel Martinez',
+  63:'Daniel Martin',64:'Karina Fernandez',73:'Florencia Cubilla',74:'Romina Baez',75:'Julieta Yegros'};
+const ARTS = {1509769:'PD RESPIRABLES 100/12',1509749:'PD LADYSOFT CLASICOS 20x30',1509750:'PD LADYSOFT CLASICOS 56x10',1509916:''};
+
+const $ = id => document.getElementById(id);
+const fmt$ = n => '$ ' + Math.round(n).toLocaleString('es-AR');
+const fmtN = n => Math.round(n).toLocaleString('es-AR');
+const fmtP = n => (n*100).toLocaleString('es-AR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%';
+const esc = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const cli = s => String(s||'').trim().replace(/^0+(?=\d)/,'');
+const color = (c,o) => c>=o ? 'var(--ok)' : c>=o*2/3 ? 'var(--mid)' : 'var(--low)';
+let st={}; try{ st=JSON.parse(localStorage.getItem('protectores-v1')||'{}')||{}; }catch(e){}
+const save=()=>{ try{ localStorage.setItem('protectores-v1',JSON.stringify(st)); }catch(e){} };
+if(st.per) $('per').value=st.per; if(st.iva) $('iva').value=st.iva; if(st.pend===false) $('pend').checked=false;
+
+function parseCSV(txt){const rows=[];let row=[],f='',q=false;for(let i=0;i<txt.length;i++){const ch=txt[i];
+  if(q){if(ch==='"'){if(txt[i+1]==='"'){f+='"';i++;}else q=false;}else f+=ch;}
+  else if(ch==='"')q=true;else if(ch===';'){row.push(f);f='';}else if(ch==='\n'){row.push(f.replace(/\r$/,''));rows.push(row);row=[];f='';}else f+=ch;}
+  if(f!==''||row.length){row.push(f.replace(/\r$/,''));rows.push(row);}return rows;}
+const num=s=>{s=String(s||'').trim();return s?parseFloat(s.replace(/\./g,'').replace(',','.'))||0:0;};
+const iso=s=>{s=String(s||'').trim();let m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);if(m)return m[0];
+  m=s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);return m?m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0'):'';};
+
+let R=[], CART={}, NOMS={};
+function procesar(txt){
+  const rows=parseCSV(txt).filter(r=>r.length>5); const H=rows.shift().map(h=>h.trim());
+  const ix=n=>{const i=H.indexOf(n);if(i<0)throw new Error('Falta la columna '+n);return i;};
+  const I={cli:ix('Cliente'),fc:ix('FechaComprobante'),fca:ix('FechaCarga'),cod:ix('Codigo'),cant:ix('CantBase'),neto:ix('ImporteNetoItem'),bru:ix('ImporteItem'),cv:ix('CodVendedor'),art:ix('Articulo'),rs:ix('RazonSocial')};
+  const set=new Set(CODIGOS), out=[];
+  rows.forEach(r=>{ const c=parseInt(r[I.cod],10); if(!set.has(c)) return;
+    const v=parseInt(r[I.cv],10); if(!(v in VEND)) return;
+    const fc=iso(r[I.fc]), pend=fc?0:1, f=fc||iso(r[I.fca]); if(!f||f<DESDE||f>HASTA) return;
+    if(r[I.art] && !ARTS[c]) ARTS[c]=r[I.art].trim();
+    out.push({v,k:cli(r[I.cli]),rs:(r[I.rs]||'').trim(),m:+f.slice(5,7),d:f,c,q:num(r[I.cant]),n:num(r[I.neto]),b:num(r[I.bru]),pend}); });
+  return out;
+}
+
+const ABIERTOS=new Set();
+function render(){
+  const per=$('per').value, inclP=$('pend').checked, conIva=$('iva').value==='b';
+  const by={}; Object.keys(VEND).forEach(v=>by[v]={cli:{},neto:0,q:0});
+  let dmax='';
+  R.forEach(x=>{ if(per!=='b' && x.m!==+per) return; if(x.pend && !inclP) return;
+    const o=by[x.v]; o.neto+=conIva?x.b:x.n; o.q+=x.q; o.cli[x.k]=(o.cli[x.k]||0)+x.n; if(x.d>dmax) dmax=x.d; });
+  const rs=Object.keys(VEND).map(Number).map(v=>{ const o=by[v], lst=CART[v]||[], base=lst.length;
+    const buy=new Set(Object.keys(o.cli).filter(k=>o.cli[k]>0.5)), cc=buy.size, meta=Math.ceil(base*OBJ);
+    const sin=lst.filter(c=>!buy.has(cli(c[0]))).sort((a,b)=>String(a[1]).localeCompare(String(b[1])));
+    return {cod:v, nom:VEND[v], base, cc, cob:base?cc/base:0, meta, falta:Math.max(meta-cc,0), neto:o.neto, q:o.q, sin}; });
+  const tb=rs.reduce((a,r)=>a+r.base,0), tc=rs.reduce((a,r)=>a+r.cc,0), tm=rs.reduce((a,r)=>a+r.meta,0),
+        tf=rs.reduce((a,r)=>a+r.falta,0), tn=rs.reduce((a,r)=>a+r.neto,0), tq=rs.reduce((a,r)=>a+r.q,0), ok=rs.filter(r=>r.base&&!r.falta).length;
+  const perTxt={b:'noviembre y diciembre 2026','11':'noviembre 2026','12':'diciembre 2026'}[per];
+  $('sub').textContent=`Período: ${perTxt}${dmax?' · ventas hasta el '+dmax.slice(8)+'/'+dmax.slice(5,7):''} · ${rs.length} vendedores · base total ${fmtN(tb)} clientes`;
+  $('kpis').innerHTML=[
+    ['Cobertura del equipo',fmtP(tb?tc/tb:0),`Objetivo 25% = ${fmtN(tm)} clientes`],
+    ['Clientes con compra',fmtN(tc),tf?`Faltan ${fmtN(tf)} para las metas`:'✔ todas las metas cumplidas'],
+    ['Vendedores que cumplen',`${ok} de ${rs.length}`,'Llegaron al 25% de su base'],
+    ['Unidades vendidas',fmtN(tq),'Protectores diarios del concurso'],
+    ['Venta protectores',fmt$(tn),conIva?'Con IVA':'Sin IVA']
+  ].map(k=>`<div class="kpi"><div class="l">${k[0]}</div><div class="v">${k[1]}</div><div class="n">${k[2]}</div></div>`).join('');
+  const mx=Math.max(OBJ*1.6,...rs.map(r=>r.cob));
+  const meter=c=>`<div class="meter" title="La línea negra marca el 25%"><i style="width:${Math.min(c/mx,1)*100}%;background:${color(c,OBJ)}"></i><b style="left:calc(${OBJ/mx*100}% - 1px)"></b></div>`;
+  const sorted=[...rs].sort((a,b)=>b.cob-a.cob||b.cc-a.cc);
+  $('tbl').innerHTML=`<div class="tbl"><table>
+  <thead><tr><th class="l">Código</th><th class="l">Vendedor</th><th>Base clientes</th><th>Clientes con compra</th><th>Cobertura</th><th class="l">Avance vs 25%</th><th>Meta clientes</th><th>Faltan</th><th>Unidades</th><th>Venta $ ${conIva?'con':'sin'} IVA</th><th>Clientes sin compra</th></tr></thead>
+  <tbody>${sorted.map(r=>{ const ab=ABIERTOS.has(r.cod); return `<tr><td class="l cod">${r.cod}</td><td class="l">${esc(r.nom)}</td><td>${fmtN(r.base)}</td><td><b>${fmtN(r.cc)}</b></td>
+    <td><span class="chip" style="background:${color(r.cob,OBJ)}">${fmtP(r.cob)}</span></td><td class="l">${meter(r.cob)}</td><td>${fmtN(r.meta)}</td>
+    <td><b>${r.falta?fmtN(r.falta):'✔ cumplido'}</b></td><td>${fmtN(r.q)}</td><td>${fmt$(r.neto)}</td>
+    <td><button class="exp" data-v="${r.cod}" aria-expanded="${ab}">${ab?'▾':'▸'} Ver ${fmtN(r.sin.length)}</button></td></tr>${ab?subfila(r):''}`; }).join('')}</tbody>
+  <tfoot><tr><td class="l" colspan="2">Total (${rs.length} vendedores)</td><td>${fmtN(tb)}</td><td>${fmtN(tc)}</td><td><span class="chip" style="background:${color(tb?tc/tb:0,OBJ)}">${fmtP(tb?tc/tb:0)}</span></td>
+    <td class="l">${meter(tb?tc/tb:0)}</td><td>${fmtN(tm)}</td><td>${tf?fmtN(tf):'✔ cumplido'}</td><td>${fmtN(tq)}</td><td>${fmt$(tn)}</td><td></td></tr></tfoot></table></div>`;
+  $('sCods').textContent=`▸ Códigos del concurso (${CODIGOS.length})`;
+  $('dCods').innerHTML=`<div class="sublist"><table><thead><tr><th class="l">Código</th><th class="l">Artículo</th></tr></thead><tbody>${CODIGOS.map(c=>`<tr><td class="l cod">${c}</td><td class="l">${esc(ARTS[c]||'(todavía sin ventas)')}</td></tr>`).join('')}</tbody></table></div>`;
+}
+function subfila(r){
+  const body=r.sin.length?`<div class="sublist"><table><thead><tr><th class="l">Cliente</th><th class="l">Razón social</th><th class="l">Dirección</th><th class="l">Localidad</th><th class="l">Ramo</th><th class="l">Días de visita</th></tr></thead><tbody>${r.sin.map(c=>`<tr><td class="l">${esc(c[0])}</td><td class="l">${esc(c[1])}</td><td class="l">${esc(c[2])}</td><td class="l">${esc(c[3])}</td><td class="l">${esc(c[4])}</td><td class="l">${esc(c[5])}</td></tr>`).join('')}</tbody></table></div>`:'<p class="subnote"><b>Todos los clientes de su cartera ya compraron.</b></p>';
+  return `<tr class="sub"><td colspan="11"><p class="subnote"><b>${esc(r.nom)}: ${fmtN(r.sin.length)} clientes de su cartera sin compra de protectores diarios en el período.</b></p>${body}</td></tr>`;
+}
+document.addEventListener('click',e=>{const b=e.target.closest('.exp');if(!b)return;const v=+b.dataset.v;ABIERTOS.has(v)?ABIERTOS.delete(v):ABIERTOS.add(v);render();});
+$('per').addEventListener('change',()=>{st.per=$('per').value;save();render();});
+$('iva').addEventListener('change',()=>{st.iva=$('iva').value;save();render();});
+$('pend').addEventListener('change',()=>{st.pend=$('pend').checked;save();render();});
+
+// ---- Carga: el CSV de ventas Softys mas reciente (lo baja el robot del Concurso Softys) y las carteras de Gescom ----
+(async()=>{
+  try{
+    const [aj,cc]=await Promise.all([
+      fetch('archivos.json?t='+Date.now(),{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('No se pudo leer la lista de archivos');return r.json();}),
+      fetch('carteras.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null)]);
+    const key=n=>{const m=n.match(/(\d{8})-(\d{6})/);return m?m[1]+m[2]:'0';};
+    const files=(aj.archivos||[]).filter(n=>/\.csv$/i.test(n)&&!n.includes('/')).sort((a,b)=>key(b).localeCompare(key(a)));
+    if(!files.length) throw new Error('No hay archivo de ventas');
+    const d=await fetch(files[0].split('/').map(encodeURIComponent).join('/')+'?t='+Date.now(),{cache:'no-store'});
+    if(!d.ok) throw new Error('No se pudo descargar el archivo de ventas');
+    R=procesar(new TextDecoder('windows-1252').decode(await d.arrayBuffer()));
+    if(cc&&cc.v) Object.keys(VEND).forEach(v=>CART[v]=cc.v[v]||[]);
+    const m=files[0].match(/(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})/);
+    $('hAct').textContent=(m?`Datos de ventas al ${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]} · `:'')+'Se actualiza de lunes a viernes a las 7 hs y 13:30 hs';
+    $('fuente').textContent='Archivo: '+files[0]+'.';
+    $('loadMsg').hidden=true; $('app').hidden=false; render();
+  }catch(e){ $('loadMsg').textContent='No se pudieron cargar los datos: '+e.message; }
+})();
+</script>
+</body>
+</html>
