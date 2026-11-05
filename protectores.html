@@ -41,6 +41,11 @@ table{border-collapse:collapse;width:100%;min-width:980px;font-size:.95rem}
 th,td{padding:9px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
 th{background:var(--ink);color:#fff;font-weight:600;font-size:.82rem}
 th.l,td.l{text-align:left}
+th.ord{padding:0}
+.ordb{all:unset;box-sizing:border-box;display:block;width:100%;padding:9px 12px;cursor:pointer;color:#fff;font-weight:600;font-size:.82rem;text-align:inherit;white-space:nowrap}
+.ordb span{opacity:.75;font-size:.75rem}
+.ordb:hover{background:#222}
+.ordb:focus-visible{outline:3px solid #7FC4FF;outline-offset:-3px}
 tbody tr:hover{background:#D2EEFF}
 tfoot td{font-weight:800;border-top:2px solid var(--ink);border-bottom:0;background:#fff}
 .cod{font-weight:800}
@@ -142,6 +147,7 @@ function procesar(txt){
 }
 
 const ABIERTOS=new Set();
+let ORDEN=(st.orden&&st.orden.k)? st.orden : {k:'cob',dir:-1};   // por defecto: mayor cobertura primero
 function render(){
   const per=$('per').value, conIva=false;   // siempre sin IVA
   const by={}; Object.keys(VEND).forEach(v=>by[v]={cli:{},neto:0,q:0});
@@ -150,7 +156,7 @@ function render(){
   const rs=Object.keys(VEND).map(Number).map(v=>{ const o=by[v], lst=CART[v]||[], base=lst.length;
     const buy=new Set(Object.keys(o.cli).filter(k=>o.cli[k]>0.5)), cc=buy.size, meta=Math.ceil(base*OBJ);
     const sin=lst.filter(c=>!buy.has(cli(c[0]))).sort((a,b)=>String(a[1]).localeCompare(String(b[1])));
-    return {cod:v, nom:VEND[v], base, cc, cob:base?cc/base:0, meta, falta:Math.max(meta-cc,0), neto:o.neto, q:o.q, sin}; });
+    return {cod:v, nom:VEND[v], base, cc, cob:base?cc/base:0, meta, falta:Math.max(meta-cc,0), neto:o.neto, q:o.q, sin, sinN:sin.length}; });
   const tb=rs.reduce((a,r)=>a+r.base,0), tc=rs.reduce((a,r)=>a+r.cc,0), tm=rs.reduce((a,r)=>a+r.meta,0),
         tf=rs.reduce((a,r)=>a+r.falta,0), tn=rs.reduce((a,r)=>a+r.neto,0), tq=rs.reduce((a,r)=>a+r.q,0), ok=rs.filter(r=>r.base&&!r.falta).length;
   const perTxt={b:'noviembre y diciembre 2026','11':'noviembre 2026','12':'diciembre 2026'}[per];
@@ -164,9 +170,12 @@ function render(){
   ].map(k=>`<div class="kpi"><div class="l">${k[0]}</div><div class="v">${k[1]}</div><div class="n">${k[2]}</div></div>`).join('');
   const mx=Math.max(OBJ*1.6,...rs.map(r=>r.cob));
   const meter=c=>`<div class="meter" title="La línea negra marca el 25%"><i style="width:${Math.min(c/mx,1)*100}%;background:${color(c,OBJ)}"></i><b style="left:calc(${OBJ/mx*100}% - 1px)"></b></div>`;
-  const sorted=[...rs].sort((a,b)=>b.cob-a.cob||b.cc-a.cc);
-  $('tbl').innerHTML=`<div class="tbl"><table>
-  <thead><tr><th class="l">Código</th><th class="l">Vendedor</th><th>Base clientes</th><th>Clientes con compra</th><th>Cobertura</th><th class="l">Avance vs 25%</th><th>Meta clientes</th><th>Faltan</th><th>Unidades</th><th>Venta $ ${conIva?'con':'sin'} IVA</th><th>Clientes sin compra</th></tr></thead>
+  // orden: tocando el titulo de la columna (pedido de Bruno, 05/11/2026: poder ordenar de menor a mayor)
+  const sorted=[...rs].sort((a,b)=>{ const x=a[ORDEN.k], y=b[ORDEN.k];
+    const d=typeof x==='string'? x.localeCompare(y,'es') : x-y; return ORDEN.dir*d || (b.cc-a.cc); });
+  const th=(k,t,l)=>{ const on=ORDEN.k===k&&!(t.startsWith('Avance')); return `<th class="${l?'l ':''}ord"${on?` aria-sort="${ORDEN.dir>0?'ascending':'descending'}"`:''}><button type="button" class="ordb" data-k="${k}" title="Ordenar de menor a mayor o de mayor a menor">${t} <span>${on?(ORDEN.dir>0?'▲':'▼'):'↕'}</span></button></th>`; };
+  $('tbl').innerHTML=`<p class="subnote" style="margin:0 0 6px">Tocá el título de una columna para ordenar: ▲ de menor a mayor · ▼ de mayor a menor.</p><div class="tbl"><table>
+  <thead><tr>${th('cod','Código',1)}${th('nom','Vendedor',1)}${th('base','Base clientes')}${th('cc','Clientes con compra')}${th('cob','Cobertura')}${th('cob','Avance vs 25%',1)}${th('meta','Meta clientes')}${th('falta','Faltan')}${th('q','Unidades')}${th('neto','Venta $ sin IVA')}${th('sinN','Clientes sin compra')}</tr></thead>
   <tbody>${sorted.map(r=>{ const ab=ABIERTOS.has(r.cod); return `<tr><td class="l cod">${r.cod}</td><td class="l">${esc(r.nom)}</td><td>${fmtN(r.base)}</td><td><b>${fmtN(r.cc)}</b></td>
     <td><span class="chip" style="background:${color(r.cob,OBJ)}">${fmtP(r.cob)}</span></td><td class="l">${meter(r.cob)}</td><td>${fmtN(r.meta)}</td>
     <td><b>${r.falta?fmtN(r.falta):'✔ cumplido'}</b></td><td>${fmtN(r.q)}</td><td>${fmt$(r.neto)}</td>
@@ -180,6 +189,9 @@ function subfila(r){
   const body=r.sin.length?`<div class="sublist"><table><thead><tr><th class="l">Cliente</th><th class="l">Razón social</th><th class="l">Dirección</th><th class="l">Localidad</th><th class="l">Ramo</th><th class="l">Días de visita</th></tr></thead><tbody>${r.sin.map(c=>`<tr><td class="l">${esc(c[0])}</td><td class="l">${esc(c[1])}</td><td class="l">${esc(c[2])}</td><td class="l">${esc(c[3])}</td><td class="l">${esc(c[4])}</td><td class="l">${esc(c[5])}</td></tr>`).join('')}</tbody></table></div>`:'<p class="subnote"><b>Todos los clientes de su cartera ya compraron.</b></p>';
   return `<tr class="sub"><td colspan="11"><p class="subnote"><b>${esc(r.nom)}: ${fmtN(r.sin.length)} clientes de su cartera sin compra de protectores diarios en el período.</b></p>${body}</td></tr>`;
 }
+document.addEventListener('click',e=>{const o=e.target.closest('.ordb');if(!o)return;const k=o.dataset.k;
+  // primer toque: de menor a mayor; segundo toque en la misma columna: de mayor a menor
+  ORDEN= ORDEN.k===k? {k,dir:-ORDEN.dir} : {k,dir:1}; st.orden=ORDEN; save(); render();});
 document.addEventListener('click',e=>{const b=e.target.closest('.exp');if(!b)return;const v=+b.dataset.v;ABIERTOS.has(v)?ABIERTOS.delete(v):ABIERTOS.add(v);render();});
 $('per').addEventListener('change',()=>{st.per=$('per').value;save();render();});
 
