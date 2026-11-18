@@ -65,6 +65,13 @@ details.cods{margin:0 0 10px;font-size:.88rem}
 details.cods summary{cursor:pointer;font-weight:700;display:inline-block;background:#fff;border:1px solid #000;border-radius:999px;padding:3px 12px}
 details.cods .sublist{max-width:620px}
 footer{margin-top:22px;font-size:.82rem;color:var(--ink2);max-width:90ch}
+.vivo{display:inline-flex;align-items:center;gap:6px;font-weight:800;color:#0B6B1F;background:#E3F8E6;border:1px solid #0B6B1F;border-radius:999px;padding:1px 10px;margin-right:4px}
+.vivo i{width:9px;height:9px;border-radius:50%;background:#1FA83A;animation:lat 2s infinite}
+@keyframes lat{0%{box-shadow:0 0 0 0 rgba(31,168,58,.6)}70%{box-shadow:0 0 0 7px rgba(31,168,58,0)}100%{box-shadow:0 0 0 0 rgba(31,168,58,0)}}
+@media (prefers-reduced-motion:reduce){.vivo i{animation:none}}
+.hoy{display:inline-block;font-size:.75rem;font-weight:800;color:#0B6B1F;background:#E3F8E6;border-radius:999px;padding:0 6px;margin-left:4px}
+.tick{background:#fff;border:1px solid var(--ink);border-radius:6px;padding:6px 10px;cursor:pointer;font-weight:700}
+.tick input{width:17px;height:17px;accent-color:#000;margin:0}
 /* filtro de vendedores (pedido de Bruno, 18/11/2026): se eligen los que uno quiera */
 .vsel{position:relative;font-size:.88rem}
 .vsel summary{list-style:none;cursor:pointer;background:#fff;border:1px solid var(--ink);border-radius:6px;padding:6px 10px;font-weight:700;white-space:nowrap}
@@ -94,6 +101,7 @@ footer{margin-top:22px;font-size:.82rem;color:var(--ink2);max-width:90ch}
       <option value="11">Noviembre</option>
       <option value="12">Diciembre</option>
     </select></label>
+    <label class="tick"><input type="checkbox" id="cVivo" checked> Sumar pedidos de hoy (en vivo)</label>
     <details class="vsel" id="vsel"><summary id="vselTx">Vendedores: todos</summary>
       <div class="vpop"><div class="vbtn"><button type="button" id="vTodos">Todos</button><button type="button" id="vNinguno">Ninguno</button></div><div id="vList"></div></div>
     </details>
@@ -110,7 +118,7 @@ footer{margin-top:22px;font-size:.82rem;color:var(--ink2);max-width:90ch}
   <footer>
     Cliente con compra = cliente con compra neta positiva (ventas menos devoluciones) de cualquiera de los protectores diarios del concurso en el período.
     Cobertura = clientes con compra ÷ base de clientes del vendedor. Base = clientes activos de la cartera de cada vendedor en Gescom.
-    Meta = 25% de la base, redondeado hacia arriba. Ventas por fecha de comprobante: solo lo facturado (los pedidos sin facturar no cuentan).
+    Meta = 25% de la base, redondeado hacia arriba. Ventas por fecha de comprobante (lo facturado) y, en vivo, los pedidos cargados hoy todavía sin facturar (se marcan "+N hoy" y se pueden sacar con el tilde "Sumar pedidos de hoy").
     Verde: meta cumplida; amarillo: dos tercios de la meta o más; rojo: menos. <span id="fuente"></span>
   </footer>
 </div>
@@ -152,13 +160,41 @@ function procesar(txt){
   const rows=parseCSV(txt).filter(r=>r.length>5); const H=rows.shift().map(h=>h.trim());
   const ix=n=>{const i=H.indexOf(n);if(i<0)throw new Error('Falta la columna '+n);return i;};
   const I={cli:ix('Cliente'),fc:ix('FechaComprobante'),fca:ix('FechaCarga'),cod:ix('Codigo'),cant:ix('CantBase'),neto:ix('ImporteNetoItem'),bru:ix('ImporteItem'),cv:ix('CodVendedor'),art:ix('Articulo'),rs:ix('RazonSocial')};
-  const set=new Set(CODIGOS), out=[];
-  rows.forEach(r=>{ const c=parseInt(r[I.cod],10); if(!set.has(c)) return;
+  const set=new Set(CODIGOS), out=[], inro=H.indexOf('NroComprobante');
+  rows.forEach(r=>{ if(inro>=0 && r[inro]) NROS.add(r[inro].trim()); const c=parseInt(r[I.cod],10); if(!set.has(c)) return;
     const v=parseInt(r[I.cv],10); if(!(v in VEND)) return;
     const f=iso(r[I.fc]); if(!f||f<DESDE||f>HASTA) return;   // sin fecha de comprobante = pedido sin facturar: no cuenta
     if(r[I.art] && !ARTS[c]) ARTS[c]=r[I.art].trim();
     out.push({v,k:cli(r[I.cli]),rs:(r[I.rs]||'').trim(),m:+f.slice(5,7),d:f,c,q:num(r[I.cant]),n:num(r[I.neto]),b:num(r[I.bru])}); });
   return out;
+}
+// ---- En vivo (pedido de Bruno, 18/11/2026): se suman los pedidos cargados hoy que trae el robot en vivo del Reporte diario
+// (vivo/hoy.csv, cada 10 minutos). Todavia no estan facturados; se pueden sacar con el tilde "Sumar pedidos de hoy".
+// No se suman los comprobantes que ya vinieron en el archivo de ventas, para no contarlos dos veces.
+const RAWV='https://raw.githubusercontent.com/1605-83/Reporte-Diario-Ventas/main/vivo/';
+const HOY=new Date(Date.now()-3*3600e3).toISOString().slice(0,10);
+let RV=[], NROS=new Set(), vivoCorte='', baseTxt='';
+function procVivo(txt){
+  const rows=parseCSV(txt).filter(r=>r.length>5); if(!rows.length) return []; const H=rows.shift().map(h=>h.trim()), ix=n=>H.indexOf(n);
+  const I={cli:ix('Cliente'),car:ix('FechaCarga'),cod:ix('Codigo'),cant:ix('CantBase'),neto:ix('ImporteNetoItem'),bru:ix('ImporteItem'),cv:ix('CodVendedor'),rs:ix('RazonSocial'),nro:ix('NroComprobante')};
+  const set=new Set(CODIGOS), out=[];
+  rows.forEach(r=>{ const c=parseInt(r[I.cod],10); if(!set.has(c)) return; const v=parseInt(r[I.cv],10); if(!(v in VEND)) return;
+    if(iso(r[I.car])!==HOY || HOY<DESDE || HOY>HASTA) return; if(NROS.has(String(r[I.nro]||'').trim())) return;
+    out.push({v,k:cli(r[I.cli]),rs:(r[I.rs]||'').trim(),m:+HOY.slice(5,7),d:HOY,c,q:num(r[I.cant]),n:num(r[I.neto]),b:num(r[I.bru]),vivo:true}); });
+  return out;
+}
+async function enVivo(){
+  try{
+    if(new Date(Date.now()-3*3600e3).toISOString().slice(0,10)!==HOY){ location.reload(); return; }
+    const est=await (await fetch(RAWV+'estado.json?t='+Date.now(),{cache:'no-store'})).json();
+    if(est.dia===HOY.slice(8)+'-'+HOY.slice(5,7)+'-'+HOY.slice(0,4) && est.corte!==vivoCorte){
+      const r=await fetch(RAWV+'hoy.csv?t='+Date.now(),{cache:'no-store'}); if(!r.ok) throw new Error('hoy.csv');
+      RV=procVivo(new TextDecoder('windows-1252').decode(await r.arrayBuffer())); vivoCorte=est.corte; render(); }
+  }catch(e){}
+  marcaVivo();
+}
+function marcaVivo(){
+  $('hAct').innerHTML=(vivoCorte? `<span class="vivo"><i></i>En vivo · pedidos de hoy al ${esc(vivoCorte.slice(11))}</span> `:'')+esc(baseTxt)+' · se revisa solo cada 2 minutos';
 }
 
 const ABIERTOS=new Set();
@@ -167,16 +203,19 @@ function render(){
   const per=$('per').value, conIva=false;   // siempre sin IVA
   const by={}; Object.keys(VEND).forEach(v=>by[v]={cli:{},neto:0,q:0});
   let dmax='';
-  R.forEach(x=>{ if(per!=='b' && x.m!==+per) return;    const o=by[x.v]; o.neto+=conIva?x.b:x.n; o.q+=x.q; o.cli[x.k]=(o.cli[x.k]||0)+x.n; if(x.d>dmax) dmax=x.d; });
+  const usarVivo=$('cVivo').checked;
+  Object.values(by).forEach(o=>o.fac={});
+  (usarVivo? R.concat(RV) : R).forEach(x=>{ if(per!=='b' && x.m!==+per) return;    const o=by[x.v]; o.neto+=conIva?x.b:x.n; o.q+=x.q; o.cli[x.k]=(o.cli[x.k]||0)+x.n; if(!x.vivo){ o.fac[x.k]=(o.fac[x.k]||0)+x.n; if(x.d>dmax) dmax=x.d; } });
   const rs=Object.keys(VEND).map(Number).map(v=>{ const o=by[v], lst=CART[v]||[], base=lst.length;
     const buy=new Set(Object.keys(o.cli).filter(k=>o.cli[k]>0.5)), cc=buy.size, meta=Math.ceil(base*OBJ);
+    const hoy=[...buy].filter(k=>!((o.fac[k]||0)>0.5)).length;   // clientes que suman solo por los pedidos de hoy
     const sin=lst.filter(c=>!buy.has(cli(c[0]))).sort((a,b)=>String(a[1]).localeCompare(String(b[1])));
-    return {cod:v, nom:VEND[v], base, cc, cob:base?cc/base:0, meta, falta:Math.max(meta-cc,0), neto:o.neto, q:o.q, sin, sinN:sin.length}; })
+    return {cod:v, nom:VEND[v], base, cc, cob:base?cc/base:0, meta, falta:Math.max(meta-cc,0), neto:o.neto, q:o.q, sin, sinN:sin.length, hoy}; })
     .filter(r=>SEL.has(r.cod));   // solo los vendedores elegidos en el filtro (los totales tambien)
   const tb=rs.reduce((a,r)=>a+r.base,0), tc=rs.reduce((a,r)=>a+r.cc,0), tm=rs.reduce((a,r)=>a+r.meta,0),
         tf=rs.reduce((a,r)=>a+r.falta,0), tn=rs.reduce((a,r)=>a+r.neto,0), tq=rs.reduce((a,r)=>a+r.q,0), ok=rs.filter(r=>r.base&&!r.falta).length;
   const perTxt={b:'noviembre y diciembre 2026','11':'noviembre 2026','12':'diciembre 2026'}[per];
-  $('sub').textContent=`Por fecha de comprobante (solo lo facturado) · período: ${perTxt}${dmax?' · ventas hasta el '+dmax.slice(8)+'/'+dmax.slice(5,7):''} · ${rs.length} vendedores · base total ${fmtN(tb)} clientes`;
+  $('sub').textContent=`Facturado por fecha de comprobante${$("cVivo").checked&&RV.length?" + pedidos de hoy en vivo":""} · período: ${perTxt}${dmax?' · ventas hasta el '+dmax.slice(8)+'/'+dmax.slice(5,7):''} · ${rs.length} vendedores · base total ${fmtN(tb)} clientes`;
   $('kpis').innerHTML=[
     ['Cobertura del equipo',fmtP(tb?tc/tb:0),`Objetivo 25% = ${fmtN(tm)} clientes`],
     ['Clientes con compra',fmtN(tc),tf?`Faltan ${fmtN(tf)} para las metas`:'✔ todas las metas cumplidas'],
@@ -192,7 +231,7 @@ function render(){
   const th=(k,t,l)=>{ const on=ORDEN.k===k&&!(t.startsWith('Avance')); return `<th class="${l?'l ':''}ord"${on?` aria-sort="${ORDEN.dir>0?'ascending':'descending'}"`:''}><button type="button" class="ordb" data-k="${k}" title="Ordenar de menor a mayor o de mayor a menor">${t} <span>${on?(ORDEN.dir>0?'▲':'▼'):'↕'}</span></button></th>`; };
   $('tbl').innerHTML=`<p class="subnote" style="margin:0 0 6px">Tocá el título de una columna para ordenar: ▲ de menor a mayor · ▼ de mayor a menor.</p><div class="tbl"><table>
   <thead><tr>${th('cod','Código',1)}${th('nom','Vendedor',1)}${th('base','Base clientes')}${th('cc','Clientes con compra')}${th('cob','Cobertura')}${th('cob','Avance vs 25%',1)}${th('meta','Meta clientes')}${th('falta','Faltan')}${th('q','Unidades')}${th('neto','Venta $ sin IVA')}${th('sinN','Clientes sin compra')}</tr></thead>
-  <tbody>${sorted.map(r=>{ const ab=ABIERTOS.has(r.cod); return `<tr><td class="l cod">${r.cod}</td><td class="l">${esc(r.nom)}</td><td>${fmtN(r.base)}</td><td><b>${fmtN(r.cc)}</b></td>
+  <tbody>${sorted.map(r=>{ const ab=ABIERTOS.has(r.cod); return `<tr><td class="l cod">${r.cod}</td><td class="l">${esc(r.nom)}</td><td>${fmtN(r.base)}</td><td><b>${fmtN(r.cc)}</b>${r.hoy?` <span class="hoy" title="Clientes que suman por pedidos cargados hoy (todavía sin facturar)">+${r.hoy} hoy</span>`:''}</td>
     <td><span class="chip" style="background:${color(r.cob,OBJ)}">${fmtP(r.cob)}</span></td><td class="l">${meter(r.cob)}</td><td>${fmtN(r.meta)}</td>
     <td><b>${r.falta?fmtN(r.falta):'✔ cumplido'}</b></td><td>${fmtN(r.q)}</td><td>${fmt$(r.neto)}</td>
     <td><button class="exp" data-v="${r.cod}" aria-expanded="${ab}">${ab?'▾':'▸'} Ver ${fmtN(r.sin.length)}</button></td></tr>${ab?subfila(r):''}`; }).join('')}</tbody>
@@ -210,6 +249,8 @@ document.addEventListener('click',e=>{const o=e.target.closest('.ordb');if(!o)re
   ORDEN= ORDEN.k===k? {k,dir:-ORDEN.dir} : {k,dir:1}; st.orden=ORDEN; save(); render();});
 document.addEventListener('click',e=>{const b=e.target.closest('.exp');if(!b)return;const v=+b.dataset.v;ABIERTOS.has(v)?ABIERTOS.delete(v):ABIERTOS.add(v);render();});
 $('per').addEventListener('change',()=>{st.per=$('per').value;save();render();});
+if(st.vivo===false) $("cVivo").checked=false;
+$("cVivo").addEventListener("change",()=>{st.vivo=$("cVivo").checked;save();render();});
 // filtro de vendedores: se recuerda en este navegador
 const TODOS=Object.keys(VEND).map(Number);
 let SEL=new Set(Array.isArray(st.vs)? st.vs.filter(v=>v in VEND) : TODOS);
@@ -236,9 +277,9 @@ vselTx();
     R=procesar(new TextDecoder('windows-1252').decode(await d.arrayBuffer()));
     if(cc&&cc.v) Object.keys(VEND).forEach(v=>CART[v]=cc.v[v]||[]);
     const m=files[0].match(/(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})/);
-    $('hAct').textContent=(m?`Datos de ventas al ${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]} · `:'')+'Se actualiza de lunes a viernes a las 7 hs y 13:30 hs';
+    baseTxt=(m?`Datos de ventas al ${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]} · `:'')+"Facturado: se actualiza de lunes a viernes a las 7 hs y 13:30 hs"; marcaVivo();
     $('fuente').textContent='Archivo: '+files[0]+'.';
-    $('loadMsg').hidden=true; $('app').hidden=false; render();
+    $('loadMsg').hidden=true; $('app').hidden=false; render(); await enVivo(); setInterval(enVivo,2*60e3); document.addEventListener("visibilitychange",()=>{ if(!document.hidden) enVivo(); });
   }catch(e){ $('loadMsg').textContent='No se pudieron cargar los datos: '+e.message; }
 })();
 </script>
