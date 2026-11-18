@@ -65,6 +65,18 @@ details.cods{margin:0 0 10px;font-size:.88rem}
 details.cods summary{cursor:pointer;font-weight:700;display:inline-block;background:#fff;border:1px solid #000;border-radius:999px;padding:3px 12px}
 details.cods .sublist{max-width:620px}
 footer{margin-top:22px;font-size:.82rem;color:var(--ink2);max-width:90ch}
+/* filtro de vendedores (pedido de Bruno, 18/11/2026): se eligen los que uno quiera */
+.vsel{position:relative;font-size:.88rem}
+.vsel summary{list-style:none;cursor:pointer;background:#fff;border:1px solid var(--ink);border-radius:6px;padding:6px 10px;font-weight:700;white-space:nowrap}
+.vsel summary::-webkit-details-marker{display:none}
+.vsel summary::after{content:" ▾"}
+.vpop{position:absolute;right:0;z-index:20;margin-top:4px;width:260px;max-height:420px;overflow:auto;background:#fff;border:2px solid var(--ink);border-radius:8px;box-shadow:5px 5px 0 var(--ink);padding:8px}
+.vbtn{display:flex;gap:6px;margin-bottom:6px}
+.vbtn button{font:inherit;font-size:.8rem;font-weight:700;background:#fff;border:1px solid #000;border-radius:999px;padding:3px 10px;cursor:pointer}
+#vList label{display:flex;align-items:center;gap:8px;padding:4px 4px;border-radius:4px;cursor:pointer}
+#vList label:hover{background:#D2EEFF}
+#vList input{width:17px;height:17px;accent-color:#000;margin:0}
+@media (max-width:600px){.vpop{left:0;right:auto}}
 #loadMsg{margin:18px 0 0;font-weight:700}
 </style>
 </head>
@@ -82,6 +94,9 @@ footer{margin-top:22px;font-size:.82rem;color:var(--ink2);max-width:90ch}
       <option value="11">Noviembre</option>
       <option value="12">Diciembre</option>
     </select></label>
+    <details class="vsel" id="vsel"><summary id="vselTx">Vendedores: todos</summary>
+      <div class="vpop"><div class="vbtn"><button type="button" id="vTodos">Todos</button><button type="button" id="vNinguno">Ninguno</button></div><div id="vList"></div></div>
+    </details>
     <label>Fecha <select id="fFecha" aria-label="Tipo de fecha" disabled><option>De comprobante</option></select></label>
   </div>
 </header>
@@ -156,7 +171,8 @@ function render(){
   const rs=Object.keys(VEND).map(Number).map(v=>{ const o=by[v], lst=CART[v]||[], base=lst.length;
     const buy=new Set(Object.keys(o.cli).filter(k=>o.cli[k]>0.5)), cc=buy.size, meta=Math.ceil(base*OBJ);
     const sin=lst.filter(c=>!buy.has(cli(c[0]))).sort((a,b)=>String(a[1]).localeCompare(String(b[1])));
-    return {cod:v, nom:VEND[v], base, cc, cob:base?cc/base:0, meta, falta:Math.max(meta-cc,0), neto:o.neto, q:o.q, sin, sinN:sin.length}; });
+    return {cod:v, nom:VEND[v], base, cc, cob:base?cc/base:0, meta, falta:Math.max(meta-cc,0), neto:o.neto, q:o.q, sin, sinN:sin.length}; })
+    .filter(r=>SEL.has(r.cod));   // solo los vendedores elegidos en el filtro (los totales tambien)
   const tb=rs.reduce((a,r)=>a+r.base,0), tc=rs.reduce((a,r)=>a+r.cc,0), tm=rs.reduce((a,r)=>a+r.meta,0),
         tf=rs.reduce((a,r)=>a+r.falta,0), tn=rs.reduce((a,r)=>a+r.neto,0), tq=rs.reduce((a,r)=>a+r.q,0), ok=rs.filter(r=>r.base&&!r.falta).length;
   const perTxt={b:'noviembre y diciembre 2026','11':'noviembre 2026','12':'diciembre 2026'}[per];
@@ -194,6 +210,17 @@ document.addEventListener('click',e=>{const o=e.target.closest('.ordb');if(!o)re
   ORDEN= ORDEN.k===k? {k,dir:-ORDEN.dir} : {k,dir:1}; st.orden=ORDEN; save(); render();});
 document.addEventListener('click',e=>{const b=e.target.closest('.exp');if(!b)return;const v=+b.dataset.v;ABIERTOS.has(v)?ABIERTOS.delete(v):ABIERTOS.add(v);render();});
 $('per').addEventListener('change',()=>{st.per=$('per').value;save();render();});
+// filtro de vendedores: se recuerda en este navegador
+const TODOS=Object.keys(VEND).map(Number);
+let SEL=new Set(Array.isArray(st.vs)? st.vs.filter(v=>v in VEND) : TODOS);
+function vselTx(){ $('vselTx').textContent= SEL.size===TODOS.length? 'Vendedores: todos' : SEL.size===0? 'Vendedores: ninguno' : SEL.size===1? 'Vendedor: '+VEND[[...SEL][0]] : `Vendedores: ${SEL.size} de ${TODOS.length}`; }
+function vselGuardar(){ st.vs= SEL.size===TODOS.length? null : [...SEL]; save(); vselTx(); if(R.length||Object.keys(CART).length) render(); }
+$('vList').innerHTML=TODOS.map(v=>`<label><input type="checkbox" value="${v}"${SEL.has(v)?' checked':''}> <b>${v}</b> ${esc(VEND[v])}</label>`).join('');
+$('vList').addEventListener('change',e=>{ const v=+e.target.value; e.target.checked? SEL.add(v) : SEL.delete(v); vselGuardar(); });
+$('vTodos').addEventListener('click',()=>{ SEL=new Set(TODOS); $('vList').querySelectorAll('input').forEach(i=>i.checked=true); vselGuardar(); });
+$('vNinguno').addEventListener('click',()=>{ SEL=new Set(); $('vList').querySelectorAll('input').forEach(i=>i.checked=false); vselGuardar(); });
+document.addEventListener('click',e=>{ if(!e.target.closest('#vsel')) $('vsel').open=false; });
+vselTx();
 
 // ---- Carga: el CSV de ventas Softys mas reciente (lo baja el robot del Concurso Softys) y las carteras de Gescom ----
 (async()=>{
